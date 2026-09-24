@@ -9,7 +9,6 @@ struct SceneryBackgroundView: View {
                 let w = geo.size.width
 
                 Canvas { context, size in
-                    drawTrees(context: &context, size: size, width: w)
                     drawTrafficSigns(context: &context, size: size, width: w)
                 }
                 .ignoresSafeArea()
@@ -17,52 +16,8 @@ struct SceneryBackgroundView: View {
         }
     }
 
-private func drawTrees(context: inout GraphicsContext, size: CGSize, width: CGFloat) {
-        let treePositions: [(x: CGFloat, y: CGFloat, scale: CGFloat)] = [
-            (0.08, 180, 1.0),
-            (0.92, 250, 0.8),
-            (0.05, 450, 1.2),
-            (0.95, 520, 0.9),
-            (0.1, 700, 1.1),
-            (0.88, 780, 0.85),
-            (0.03, 950, 1.0),
-            (0.93, 1050, 0.95),
-            (0.07, 1200, 1.15),
-            (0.9, 1350, 0.9),
-        ]
-
-        for pos in treePositions {
-            let cx = size.width * pos.x
-            let cy = pos.y
-            let s = pos.scale
-
-            let darkGreen = MJTheme.treeFoliageDark
-            let medGreen = MJTheme.treeFoliage
-
-            var trunk = Path()
-            trunk.addRect(CGRect(x: cx - 4 * s, y: cy + 15 * s, width: 8 * s, height: 20 * s))
-            context.fill(trunk, with: .color(MJTheme.treeTrunk))
-
-            let layers: [(offset: CGFloat, w: CGFloat, h: CGFloat, color: Color)] = [
-                (0, 30, 25, darkGreen),
-                (-12, 26, 22, medGreen),
-                (-22, 20, 18, darkGreen.opacity(0.9)),
-            ]
-
-            for layer in layers {
-                var treePath = Path()
-                treePath.move(to: CGPoint(x: cx, y: cy + layer.offset - layer.h * s))
-                treePath.addLine(to: CGPoint(x: cx - layer.w / 2 * s, y: cy + layer.offset))
-                treePath.addLine(to: CGPoint(x: cx + layer.w / 2 * s, y: cy + layer.offset))
-                treePath.closeSubpath()
-                context.fill(treePath, with: .color(layer.color))
-            }
-        }
-    }
-
     private func drawTrafficSigns(context: inout GraphicsContext, size: CGSize, width: CGFloat) {
         let signPositions: [(x: CGFloat, y: CGFloat, type: Int)] = [
-            (0.18, 350, 0),
             (0.15, 900, 2),
             (0.85, 1150, 0),
         ]
@@ -95,6 +50,30 @@ private func drawTrees(context: inout GraphicsContext, size: CGSize, width: CGFl
                 context.fill(rect, with: .color(MJTheme.signFaceBlue))
                 context.fill(Path(CGRect(x: cx - 8, y: cy - 18, width: 16, height: 14)), with: .color(MJTheme.signFaceWhite))
             }
+        }
+    }
+}
+
+/// Scrolls together with the road and nodes, unlike `SceneryBackgroundView`
+/// which is pinned behind the ScrollView.
+struct TreeSceneryView: View {
+    let width: CGFloat
+    let contentHeight: CGFloat
+
+    private let treeFractions: [(x: CGFloat, yFraction: CGFloat, scale: CGFloat)] = [
+        (0.14, 0.12, 1.0),
+        (0.86, 0.36, 0.9),
+        (0.14, 0.6, 1.05),
+        (0.86, 0.84, 0.9),
+    ]
+
+    var body: some View {
+        ForEach(Array(treeFractions.enumerated()), id: \.offset) { _, pos in
+            Image("tree_sticker")
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 70 * pos.scale, height: 70 * pos.scale)
+                .position(x: width * pos.x, y: contentHeight * pos.yFraction)
         }
     }
 }

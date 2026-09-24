@@ -269,8 +269,11 @@ struct JourneyPathView: View {
         GeometryReader { geo in
             let width = geo.size.width
             let positions = nodePositions(in: width)
+            let contentHeight = CGFloat(nodes.count) * 165 + 40
 
             ZStack {
+                TreeSceneryView(width: width, contentHeight: contentHeight)
+
                 RoadPathView(nodePositions: positions)
 
                 ForEach(Array(nodes.enumerated()), id: \.element.id) { index, node in

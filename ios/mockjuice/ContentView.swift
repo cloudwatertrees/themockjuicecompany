@@ -20,7 +20,6 @@ struct ContentView: View {
             FloatingTabBar(selectedTab: $selectedTab) {
                 homeResetTrigger += 1
             }
-            .padding(.bottom, 8)
 
             if showOnboarding {
                 OnboardingView {
