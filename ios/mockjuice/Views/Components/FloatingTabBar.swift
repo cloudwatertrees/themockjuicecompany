@@ -60,17 +60,16 @@ struct FloatingTabBar: View {
                 .sensoryFeedback(.selection, trigger: selectedTab)
             }
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
-        .background {
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .fill(MJTheme.spring)
-                .shadow(color: MJTheme.deepForest.opacity(0.14), radius: 18, y: 6)
-                .overlay {
-                    RoundedRectangle(cornerRadius: 28, style: .continuous)
-                        .stroke(MJTheme.deepForest.opacity(0.06), lineWidth: 0.5)
+        .padding(.top, 12)
+        .padding(.bottom, 4) // Add a tiny bit of extra breathing room above the safe area
+        .background(
+            MJTheme.cartonCream
+                .overlay(alignment: .top) {
+                    Rectangle()
+                        .fill(MJTheme.deepForest.opacity(0.1))
+                        .frame(height: 1)
                 }
-        }
-        .padding(.horizontal, 16)
+                .ignoresSafeArea(edges: .bottom)
+        )
     }
 }
