@@ -2,7 +2,6 @@ import SwiftUI
 
 struct JourneyNodeView: View {
     let node: JourneyNode
-    let isUnlocked: Bool
     let score: Int
     let isActive: Bool
     let action: () -> Void
@@ -21,18 +20,13 @@ struct JourneyNodeView: View {
             }
         }
         .buttonStyle(.plain)
-        .disabled(!isUnlocked)
     }
 
     /// Each category owns its own hue (see `DESIGN.md`) so the five nodes are
-    /// distinguishable at a glance. Locked nodes keep the neutral treatment.
-    private var badgeFill: Color {
-        isUnlocked ? node.categoryColor : MJTheme.locked
-    }
+    /// distinguishable at a glance.
+    private var badgeFill: Color { node.categoryColor }
 
-    private var badgeForeground: Color {
-        isUnlocked ? node.categoryForeground : MJTheme.innocentWhite
-    }
+    private var badgeForeground: Color { node.categoryForeground }
 
     private var standardBadge: some View {
         ZStack {
@@ -45,12 +39,12 @@ struct JourneyNodeView: View {
                     Circle()
                         .stroke(MJTheme.deepForest.opacity(0.15), lineWidth: 1.5)
                 }
-                .shadow(color: MJTheme.deepForest.opacity(isUnlocked ? 0.22 : 0.1), radius: isUnlocked ? 8 : 4, y: 3)
+                .shadow(color: MJTheme.deepForest.opacity(0.22), radius: 8, y: 3)
 
             VStack(spacing: 3) {
                 nodeIcon
 
-                if isUnlocked && score > 0 {
+                if score > 0 {
                     Text("\(score)%")
                         .font(.mjRounded(.caption2, weight: .black))
                         .foregroundStyle(badgeForeground.opacity(0.9))
@@ -66,29 +60,23 @@ struct JourneyNodeView: View {
     private var stickerBadge: some View {
         ZStack {
             Circle()
-                .fill((isUnlocked ? MJTheme.deepForest : MJTheme.locked).opacity(isUnlocked ? 0.65 : 0.55))
+                .fill(MJTheme.deepForest.opacity(0.65))
                 .frame(width: 78, height: 78)
-                .shadow(color: MJTheme.deepForest.opacity(isUnlocked ? 0.25 : 0.1), radius: 8, x: 0, y: 4)
+                .shadow(color: MJTheme.deepForest.opacity(0.25), radius: 8, x: 0, y: 4)
                 .overlay {
                     Circle()
-                        .stroke(MJTheme.innocentWhite.opacity(isUnlocked ? 0.25 : 0.15), lineWidth: 1.5)
+                        .stroke(MJTheme.innocentWhite.opacity(0.25), lineWidth: 1.5)
                         .frame(width: 78, height: 78)
                 }
 
-            if isUnlocked {
-                Image(node.icon)
-                    .resizable()
-                    .renderingMode(.template)
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 58, height: 58)
-                    .foregroundStyle(MJTheme.innocentWhite)
-            } else {
-                Image(systemName: "lock.fill")
-                    .font(.system(size: 26, weight: .bold))
-                    .foregroundStyle(MJTheme.innocentWhite.opacity(0.8))
-            }
+            Image(node.icon)
+                .resizable()
+                .renderingMode(.template)
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 58, height: 58)
+                .foregroundStyle(MJTheme.innocentWhite)
 
-            if isUnlocked && score > 0 {
+            if score > 0 {
                 Text("\(score)%")
                     .font(.mjRounded(.caption2, weight: .black))
                     .foregroundStyle(MJTheme.innocentWhite)
@@ -102,7 +90,7 @@ struct JourneyNodeView: View {
     }
 
     private var nodeIcon: some View {
-        let iconName = isUnlocked ? node.icon : "lock.fill"
+        let iconName = node.icon
         let isAsset = UIImage(named: iconName) != nil
 
         return Group {
@@ -124,14 +112,13 @@ struct JourneyNodeView: View {
 
 struct JourneyNodeLabel: View {
     let text: String
-    let isUnlocked: Bool
 
     var body: some View {
         Text(text)
             .font(.mjRounded(.caption, weight: .heavy))
             .tracking(-0.2)
             .textCase(.lowercase)
-            .foregroundStyle(MJTheme.deepForest.opacity(isUnlocked ? 1 : 0.5))
+            .foregroundStyle(MJTheme.deepForest)
             .padding(.horizontal, 10)
             .padding(.vertical, 4)
             .background(Capsule().fill(MJTheme.innocentWhite.opacity(0.85)))
