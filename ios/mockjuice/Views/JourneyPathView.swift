@@ -278,20 +278,18 @@ struct JourneyPathView: View {
 
                 ForEach(Array(nodes.enumerated()), id: \.element.id) { index, node in
                     let position = positions[index]
-                    let unlocked = progress.isUnlocked(node)
-                    let isNext = unlocked && !progress.completedNodes.contains(node.id)
+                    let isNext = !progress.completedNodes.contains(node.id)
 
                     VStack(spacing: 6) {
                         JourneyNodeView(
                             node: node,
-                            isUnlocked: unlocked,
                             score: progress.score(for: node),
                             isActive: isNext
                         ) {
                             handleNodeTap(node)
                         }
 
-                        JourneyNodeLabel(text: node.shortName, isUnlocked: unlocked)
+                        JourneyNodeLabel(text: node.shortName)
                     }
                     .position(x: position.x, y: position.y)
                     .opacity(appeared ? 1 : 0)
@@ -349,13 +347,10 @@ struct JourneyPathView: View {
                 path.append(JourneyRoute.theoryStudy)
             }
         case .highwayCode:
-            progress.completeNode(.highwayCode, score: max(progress.score(for: .highwayCode), 10))
             path.append(JourneyRoute.highwayCode)
         case .roadSigns:
-            progress.completeNode(.roadSigns, score: max(progress.score(for: .roadSigns), 10))
             path.append(JourneyRoute.roadSigns)
         case .mockTest:
-            progress.completeNode(.mockTest, score: max(progress.score(for: .mockTest), 10))
             path.append(JourneyRoute.mockTest)
         case .explore:
             path.append(JourneyRoute.explore)

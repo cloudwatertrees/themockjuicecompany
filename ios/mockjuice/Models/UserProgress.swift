@@ -205,12 +205,6 @@ final class UserProgress {
 
     // MARK: - Journey nodes
 
-    func isUnlocked(_ node: JourneyNode) -> Bool {
-        guard let index = JourneyNode.allCases.firstIndex(of: node) else { return false }
-        if index == 0 { return true }
-        return completedNodes.contains(JourneyNode.allCases[index - 1].id)
-    }
-
     func score(for node: JourneyNode) -> Int {
         nodeScores[node.id] ?? 0
     }
