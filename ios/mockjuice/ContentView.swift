@@ -11,18 +11,16 @@ struct ContentView: View {
             Group {
                 switch selectedTab {
                 case .home:
-                    HomeSceneView()
-                    // JourneyPathView(progress: progress, homeResetTrigger: homeResetTrigger)
+                    JourneyPathView(progress: progress, homeResetTrigger: homeResetTrigger)
                 case .progress:
                     ProgressTabView(progress: progress)
                 }
             }
 
-            if selectedTab != .home {
-                FloatingTabBar(selectedTab: $selectedTab) {
-                    homeResetTrigger += 1
-                }
+            FloatingTabBar(selectedTab: $selectedTab) {
+                homeResetTrigger += 1
             }
+            .padding(.bottom, 8)
 
             if showOnboarding {
                 OnboardingView {
