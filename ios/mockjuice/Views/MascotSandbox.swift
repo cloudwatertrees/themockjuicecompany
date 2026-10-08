@@ -3,7 +3,9 @@ import SwiftUI
 // Apple mascot system, traced 1:1 from "Apple System Trial" (Assets.xcassets).
 // Every figure, face and part below is vector path data generated from the sheet
 // (Lanczos 4x upscale -> palette segmentation -> potrace), drawn in sheet pixel
-// coordinates so each figure lands exactly where it sits on the reference.
+// coordinates so each figure lands exactly where it sits on the reference. The
+// rig's face parts are the exception: constructed geometry (ellipses and few-node
+// smooth Beziers, symmetric) with proportions measured from the sheet.
 
 // MARK: - Palette
 
@@ -274,7 +276,7 @@ struct AppleFace: View {
 
 // MARK: - Rig parts (step 1)
 
-/// One rig layer: traced paths in local coordinates around a pivot, plus where
+/// One rig layer: paths in local coordinates around a pivot, plus where
 /// that pivot sits in character space (the Front figure's box, sheet pixels).
 struct MascotPart: Identifiable {
     let id: String
@@ -299,56 +301,79 @@ struct MascotPart: Identifiable {
     }
 }
 
-/// Upper eyelid. Not on the sheet: built from the sclera's own outline, filled
-/// with body red and edged with a dark lid line. `closure` 0 = open, 1 = shut.
+/// Eyelids. Not on the sheet: built from the eye white's own outline and filled
+/// with body red. The upper lid comes down to a shut line low in the eye, edged
+/// with a dark lid line that thickens from the open lid line's weight; the lower
+/// lid rises late to meet it, so no white is left below a shut lid.
+/// `closure` 0 = open, 1 = shut.
 enum MascotLid {
+    /// Lid line weight as the lid starts to close (the open lid line's) and when shut.
+    static let openWeight: CGFloat = 1.4
+    static let shutWeight: CGFloat = 2.6
+
     static func draw(over eye: MascotPart, closure: CGFloat, in ctx: inout GraphicsContext) {
         guard closure > 0 else { return }
+        let white = eye.silhouette
         // A little past the eye's edge, so no ring of eye white shows around a shut lid.
-        let shape = eye.silhouette.union(eye.silhouette.strokedPath(StrokeStyle(lineWidth: 2.4)))
-        let b = shape.boundingRect
+        let shape = white.union(white.strokedPath(StrokeStyle(lineWidth: 2.4)))
+        let b = white.boundingRect
         let c = min(max(closure, 0), 1)
-        let edgeY = b.minY + b.height * (0.06 + 1.0 * c)
+        // The lid shuts low in the eye so a shut eye still reads as a closed lid. The upper
+        // edge starts just clear of the eye; the lower lid only rises near the end.
+        let shutY = b.minY + b.height * 0.78
+        let upperY = b.minY - 1.2 + (shutY - b.minY + 1.2) * c
+        let lowerY = b.maxY + 1.2 + (shutY - b.maxY - 1.2) * c * c * c
         let sag = b.height * 0.14 * (1 - c * 0.6)
-        let left = CGPoint(x: b.minX - 2, y: edgeY - sag)
-        let right = CGPoint(x: b.maxX + 2, y: edgeY - sag)
-        let control = CGPoint(x: b.midX, y: edgeY + sag)
-        // The lid line stops low in the eye so a shut eye still reads as a closed lid.
-        let lineY = min(edgeY, b.minY + b.height * 0.78)
-        let lineLeft = CGPoint(x: left.x, y: lineY - sag)
-        let lineRight = CGPoint(x: right.x, y: lineY - sag)
-        let lineControl = CGPoint(x: control.x, y: lineY + sag)
 
-        var cover = Path()
-        cover.move(to: CGPoint(x: b.minX - 2, y: b.minY - 2))
-        cover.addLine(to: CGPoint(x: b.maxX + 2, y: b.minY - 2))
-        cover.addLine(to: right)
-        cover.addQuadCurve(to: left, control: control)
-        cover.closeSubpath()
+        func edge(at y: CGFloat) -> Path {
+            var p = Path()
+            p.move(to: CGPoint(x: b.minX - 2, y: y - sag))
+            p.addQuadCurve(to: CGPoint(x: b.maxX + 2, y: y - sag), control: CGPoint(x: b.midX, y: y + sag))
+            return p
+        }
+        // Each lid is intersected with the eye on its own: a union of the two lids, a stroked
+        // curve, or a clip all lose the curved edge on iOS.
+        func lid(edgeY y: CGFloat, outerY: CGFloat) -> Path {
+            var p = Path()
+            p.move(to: CGPoint(x: b.minX - 2, y: outerY))
+            p.addLine(to: CGPoint(x: b.maxX + 2, y: outerY))
+            p.addLine(to: CGPoint(x: b.maxX + 2, y: y - sag))
+            p.addQuadCurve(to: CGPoint(x: b.minX - 2, y: y - sag), control: CGPoint(x: b.midX, y: y + sag))
+            p.closeSubpath()
+            return p
+        }
+        let cover = lid(edgeY: upperY, outerY: b.minY - 4)
+        let lower = lid(edgeY: lowerY, outerY: b.maxY + 4)
         ctx.fill(cover.intersection(shape), with: .color(MascotInk.red.color))
+        ctx.fill(lower.intersection(shape), with: .color(MascotInk.red.color))
 
-        var edge = Path()
-        edge.move(to: lineLeft)
-        edge.addQuadCurve(to: lineRight, control: lineControl)
-        ctx.stroke(edge.lineIntersection(shape), with: .color(MascotInk.dark.color),
-                   style: StrokeStyle(lineWidth: 2.6, lineCap: .round))
+        // The line stops at the eye white plus the pupils' 0.75 px margin, so it never overhangs.
+        let margin = white.union(white.strokedPath(StrokeStyle(lineWidth: 1.5)))
+        ctx.stroke(edge(at: upperY).lineIntersection(margin), with: .color(MascotInk.dark.color),
+                   style: StrokeStyle(lineWidth: openWeight + (shutWeight - openWeight) * c, lineCap: .butt))
     }
 }
 
 /// Draws parts at their rest positions in character space. `pose` adds a
 /// transform per part id about its pivot; a part that `follows` another uses
-/// that part's pose. Lids go on right after the pupils.
+/// that part's pose. Pupils are clipped to their eye; lids go on last, over the
+/// lid lines, so a closing lid hides them.
 enum MascotRenderer {
     static func draw(_ parts: [MascotPart], lid: CGFloat = 0, pose: [String: CGAffineTransform] = [:],
                      in ctx: inout GraphicsContext) {
         for part in parts {
             var c = ctx
+            // Pupils run to the eye's edge: clip them to the eye white plus the rig's 0.75 px margin.
+            if part.id.hasPrefix("pupil") {
+                let eye = part.id == "pupilLeft" ? MascotParts.eyeLeft : MascotParts.eyeRight
+                let white = eye.silhouette
+                c.clip(to: white.union(white.strokedPath(StrokeStyle(lineWidth: 1.5)))
+                    .applying(CGAffineTransform(translationX: eye.anchor.x, y: eye.anchor.y)))
+            }
             c.translateBy(x: part.anchor.x, y: part.anchor.y)
             if let t = pose[part.id] ?? part.follows.flatMap({ pose[$0] }) { c.concatenate(t) }
-            // The traced lid lines belong to an open eye; they fade as the lid comes down.
-            if part.id.hasPrefix("lash") { c.opacity = max(0.0, 1.0 - lid * 3.0) }
             part.draw(in: &c)
-            if part.id == "pupilRight" {
+            if part.id == "lashRight" {
                 for eye in [MascotParts.eyeLeft, MascotParts.eyeRight] {
                     var e = ctx
                     e.translateBy(x: eye.anchor.x, y: eye.anchor.y)
@@ -579,7 +604,7 @@ struct MascotEyePreset {
 extension AppleFace.Expression {
     var eyes: MascotEyePreset { MascotRig.eyePresets[rawValue] ?? MascotEyePreset() }
 
-    /// The traced mouth / brows / closed eyes for this expression (Neutral uses the base parts).
+    /// The mouth / brows / closed eyes for this expression (Neutral uses the base parts).
     func variant(_ base: String) -> MascotPart? {
         guard self != .neutral else { return nil }
         let name = rawValue.prefix(1).uppercased() + rawValue.dropFirst()
@@ -646,7 +671,11 @@ enum MascotRigRenderer {
                 let rig = part.id == "pupilLeft" ? left : right
                 if rig.closed { continue }
                 put(part, rig.transform(for: part, pupil: true), clip: rig.clip, in: body)
-                if part.id == "pupilRight" {
+            case "lashLeft", "lashRight":
+                let rig = part.id == "lashLeft" ? left : right
+                if !rig.closed { put(part, rig.transform(for: part), in: body) }
+                // Lids go on last, over the lid lines, for every open eye (also beside a winked one).
+                if part.id == "lashRight" {
                     for r in [left, right] where !r.closed && s.blink > 0 {
                         var c = body
                         c.translateBy(x: r.eye.anchor.x, y: r.eye.anchor.y)
@@ -654,10 +683,6 @@ enum MascotRigRenderer {
                         MascotLid.draw(over: r.eye, closure: CGFloat(s.blink), in: &c)
                     }
                 }
-            case "lashLeft", "lashRight":
-                let rig = part.id == "lashLeft" ? left : right
-                if rig.closed { continue }
-                put(part, rig.transform(for: part), opacity: max(0.0, 1.0 - s.blink * 3.0), in: body)
             default:
                 let p = e.variant(part.id) ?? part
                 let pose = limbs[part.id] ?? part.follows.flatMap { limbs[$0] } ?? .identity
@@ -1075,143 +1100,139 @@ enum MascotParts {
 
     /// Sclera
     static let eyeLeft = MascotPart(id: "eyeLeft", anchor: CGPoint(x: 68.5, y: 109.9), layers: [
-        TracedLayer(.white, .face, "M-2 -24.9C-5 -24.2 -8 -22.7 -11.1 -20C-13.5 -18 -14.3 -17 -14.1 -16.7C-14.1 -16.7 -14.2 -16.3 -14.4 -16.1C-14.6 -15.9 -14.9 -15.6 -15.1 -15.1C-15.3 -14.8 -15.9 -13.6 -16.6 -12.3C-17.1 -11.2 -17.8 -10 -17.9 -9.2C-18.1 -8.7 -18.3 -8.1 -18.4 -8.1C-18.5 -7.9 -18.8 -6.6 -19.2 -5.5C-20.8 0.1 -20.1 8.5 -18 13.3C-16.1 17.3 -12.3 21.6 -8.9 23.3C-7.1 24.1 -3.9 25.1 -2.2 25.2C0.1 25.2 4.6 24 7.2 22.7C9.1 21.9 13.6 18.2 13.5 17.7C13.3 17.7 13.5 17.4 13.6 17.2C14.1 16.7 14.1 16.3 13.6 15.9C13.4 15.6 13.2 15.6 12.6 15.9C10.1 17.6 5.1 16.9 2.4 14.5C-0.6 12.2 -1.8 10.1 -2.5 5.9C-3.5 1.2 -2.9 -3.8 -0.7 -8.4C2.5 -15.1 7.6 -18.1 12.5 -16.6C13.7 -16.1 14 -16.1 14.3 -16.3C14.8 -16.8 14.6 -17.1 13.8 -18.4C11.6 -20.9 7.3 -23.6 4.7 -24.2C4.3 -24.5 3.9 -24.7 3.9 -24.8C3.9 -25 -0.1 -25.1 -2 -24.9Z"),
-        TracedLayer(.white, .face, "M14 -17.4C14 -16.8 13.9 -16.8 12.8 -17.4C5 -19.9 -3.2 -10.8 -3.7 1.1C-3.9 8.3 -1.1 13.8 4 16.6C6.5 17.8 11.1 17.9 12.7 16.6C13.3 16.3 13.3 16.3 13.3 16.9C13.3 17.5 13.5 17.4 14.2 16.3C14.8 15.8 15.8 14.6 16.1 13.9C16.8 13.1 17.4 12.3 17.6 12C18 11.3 19.5 7.9 20 5.8C20.5 3.8 20.7 2.9 20.6 0.4C20.7 -6.5 19 -11.1 15 -16.6C14.2 -17.9 14 -17.9 14 -17.4Z"),
-        TracedLayer(.white, .face, "M11.2 -12.4C9.9 -11.7 9.4 -10.7 9.4 -9.3C9.3 -8.1 9.3 -7.9 10.4 -6.8C11.3 -5.9 11.5 -5.7 12.4 -5.7C13.6 -5.7 14 -5.9 15 -7.1C15.9 -8.4 15.9 -9.8 15.3 -11C14.4 -12.9 12.6 -13.4 11.2 -12.4Z"),
+        TracedLayer(.white, .face, "M-0.49 -24.357C10.124 -24.357 18.729 -13.43 18.729 0.048C18.729 13.526 10.124 24.452 -0.49 24.452C-11.105 24.452 -19.71 13.526 -19.71 0.048C-19.71 -13.43 -11.105 -24.357 -0.49 -24.357Z"),
     ])
 
     /// Sclera
     static let eyeRight = MascotPart(id: "eyeRight", anchor: CGPoint(x: 133.3, y: 107.5), layers: [
-        TracedLayer(.white, .face, "M-0.8 -24.1C-0.9 -24 -1.3 -23.9 -1.9 -23.9C-2.5 -23.9 -2.8 -23.8 -2.8 -23.7C-2.7 -23.6 -3.4 -23.1 -4.2 -22.6C-9.6 -19.7 -12.3 -16.6 -15.2 -10.9C-16.5 -8.5 -17 -6.7 -17.6 -3.5C-19.5 6.9 -16.1 17.4 -9.2 21.9C-6.4 23.9 -5.3 24.2 -1.6 24.3C2.3 24.4 3.3 24.2 6.6 22.4C8.3 21.5 9.3 20.8 11 19.1C13 16.8 13.6 15.8 13 14.9C12.7 14.6 12.5 14.7 10.8 15.5C9.2 16.4 8.9 16.5 6.8 16.4C1.6 16.4 -2.1 12.4 -3.5 5.5C-4.6 0.9 -4 -4 -1.7 -8.5C0.2 -13.2 3.2 -15.8 6.9 -16.5C8.6 -16.9 10.8 -16.6 12.1 -16C13 -15.4 13.7 -16.6 13.1 -18C12.4 -19.7 8 -22.6 5 -23.5C2.9 -24.1 -0.5 -24.4 -0.8 -24.1Z"),
-        TracedLayer(.white, .face, "M7.8 -17.5C5.8 -17.2 5.2 -17 3.9 -16.2C1.2 -14.7 -1 -12.3 -2.5 -9.1C-3.4 -7.2 -3.8 -5.9 -4.5 -3.2C-4.7 -2.1 -4.8 2.3 -4.7 3.6C-4.4 5.1 -3.7 8.2 -3.1 9.5C-1.8 12.9 1.5 16.3 4.3 17.1C5.7 17.4 8.8 17.3 9.9 16.9C10.2 16.7 10.7 16.5 10.8 16.4C11.1 16.2 12.3 15.7 12.4 15.7C12.4 15.7 12.5 15.9 12.5 16.2C12.5 16.6 12.6 16.7 12.7 16.7C13 16.7 13.8 15.9 13.9 15.3C14.1 15.1 14.4 14.4 14.8 13.8C15.5 12.5 16.2 10.8 17.2 8.4C18.2 5.7 18.4 4.9 18.8 2C19.4 -2.6 18.7 -6 16.9 -10.7C16.5 -11.9 15.9 -13.1 15.7 -13.6C15.4 -13.9 15.2 -14.4 15.2 -14.6C14.9 -14.9 14.8 -15.1 14.8 -15.3C14.7 -15.3 14.5 -15.7 14.3 -16C14.1 -16.8 14 -16.8 13.2 -17C12.7 -17.1 12.5 -17.1 12.5 -16.9C12.3 -16.7 12.2 -16.7 11.9 -16.9C11.6 -17 11.3 -17.1 11.3 -17.1C11.2 -17.1 10.9 -17.2 10.8 -17.3C10.5 -17.4 8.6 -17.5 7.8 -17.5Z"),
-        TracedLayer(.white, .face, "M10.3 -12.7C10.1 -12.6 9.5 -12.1 9.2 -11.5C7.8 -9.8 8.2 -7.6 10.1 -6.1C11.1 -5.4 11.7 -5.5 12.8 -6.4C14.2 -7.7 14.7 -9.2 13.8 -10.7C12.8 -12.4 11.5 -13.2 10.3 -12.7Z"),
+        TracedLayer(.white, .face, "M-0.02 -24.496C10.594 -24.496 19.199 -13.57 19.199 -0.092C19.199 13.387 10.594 24.313 -0.02 24.313C-10.635 24.313 -19.24 13.387 -19.24 -0.092C-19.24 -13.57 -10.635 -24.496 -0.02 -24.496Z"),
     ])
 
     /// Pupil + glint
     static let pupilLeft = MascotPart(id: "pupilLeft", anchor: CGPoint(x: 77.1, y: 108.8), layers: [
-        TracedLayer(.dark, .face, "M5.4 -16.4C5.4 -15.9 5.3 -15.9 4.2 -16.4C-3.6 -19 -11.8 -9.8 -12.3 2.1C-12.5 9.3 -9.7 14.9 -4.6 17.5C-2.1 18.8 2.5 18.9 4.2 17.7C4.8 17.3 4.8 17.3 4.7 17.9C4.8 18.5 4.9 18.5 5.7 17.4C6.2 16.8 7.2 15.6 7.6 14.9C8.2 14.1 8.8 13.4 9 13C9.5 12.3 10.9 8.9 11.4 6.8C12 4.8 12.1 4 12.1 1.4C12.1 -5.4 10.5 -10.1 6.4 -15.6C5.6 -16.8 5.4 -16.9 5.4 -16.4Z"),
-        TracedLayer(.white, .face, "M2.6 -11.4C1.4 -10.6 0.8 -9.6 0.8 -8.3C0.8 -7.1 0.8 -6.9 1.8 -5.8C2.7 -4.9 3 -4.6 3.8 -4.6C5.1 -4.6 5.5 -4.9 6.4 -6.1C7.3 -7.4 7.4 -8.7 6.8 -10.1C5.8 -11.9 4 -12.4 2.6 -11.4Z"),
+        TracedLayer(.dark, .face, "M-0.716 -17.271C6.304 -17.271 11.996 -9.326 11.996 0.475C11.996 10.275 6.304 18.22 -0.716 18.22C-7.736 18.22 -13.427 10.275 -13.427 0.475C-13.427 -9.326 -7.736 -17.271 -0.716 -17.271Z"),
+        TracedLayer(.white, .face, "M2.608 -12.139C4.244 -12.139 5.57 -10.566 5.57 -8.624C5.57 -6.683 4.244 -5.109 2.608 -5.109C0.972 -5.109 -0.354 -6.683 -0.354 -8.624C-0.354 -10.566 0.972 -12.139 2.608 -12.139Z"),
     ])
 
     /// Pupil + glint
     static let pupilRight = MascotPart(id: "pupilRight", anchor: CGPoint(x: 140.6, y: 107.4), layers: [
-        TracedLayer(.dark, .face, "M0.5 -17.4C-1.5 -17.1 -2 -16.9 -3.4 -16.1C-6.1 -14.6 -8.3 -12.2 -9.7 -9C-10.7 -7.1 -11.1 -5.8 -11.7 -3.1C-11.9 -2 -12.1 2.4 -11.9 3.7C-11.7 5.1 -11 8.2 -10.4 9.6C-9 13 -5.8 16.4 -3 17.2C-1.6 17.5 1.5 17.4 2.6 17C2.9 16.8 3.4 16.6 3.5 16.5C3.8 16.3 5 15.7 5.2 15.8C5.2 15.8 5.2 16 5.2 16.3C5.2 16.7 5.3 16.8 5.4 16.8C5.7 16.8 6.5 16 6.6 15.4C6.8 15.1 7.1 14.5 7.5 13.9C8.2 12.6 9 10.8 9.9 8.5C10.9 5.8 11.1 4.9 11.5 2.1C12.1 -2.6 11.5 -5.9 9.6 -10.6C9.2 -11.8 8.6 -13.1 8.4 -13.5C8.2 -13.8 7.9 -14.3 7.9 -14.5C7.6 -14.8 7.6 -15.1 7.6 -15.3C7.5 -15.3 7.2 -15.6 7 -15.9C6.8 -16.8 6.7 -16.8 5.9 -16.9C5.4 -17 5.2 -17 5.2 -16.8C5.1 -16.6 5 -16.6 4.6 -16.8C4.3 -16.9 4.1 -17 4 -17C3.9 -17 3.6 -17.1 3.5 -17.2C3.3 -17.3 1.4 -17.5 0.5 -17.4Z"),
-        TracedLayer(.white, .face, "M3 -12.6C2.8 -12.5 2.2 -12 1.9 -11.5C0.5 -9.7 1 -7.5 2.8 -6C3.8 -5.3 4.4 -5.4 5.5 -6.3C7 -7.6 7.4 -9.1 6.5 -10.6C5.6 -12.3 4.2 -13.1 3 -12.6Z"),
+        TracedLayer(.dark, .face, "M1.054 -18.41C8.074 -18.41 13.765 -10.465 13.765 -0.665C13.765 9.136 8.074 17.081 1.054 17.081C-5.967 17.081 -11.658 9.136 -11.658 -0.665C-11.658 -10.465 -5.967 -18.41 1.054 -18.41Z"),
+        TracedLayer(.white, .face, "M4.378 -13.279C6.014 -13.279 7.34 -11.705 7.34 -9.764C7.34 -7.822 6.014 -6.249 4.378 -6.249C2.742 -6.249 1.416 -7.822 1.416 -9.764C1.416 -11.705 2.742 -13.279 4.378 -13.279Z"),
     ])
 
     static let blushLeft = MascotPart(id: "blushLeft", anchor: CGPoint(x: 52.3, y: 143.4), layers: [
-        TracedLayer(.pink, .face, "M-4.5 -8.6C-6.8 -8.1 -8.8 -6.2 -9.8 -4.1C-10.4 -2.6 -10.4 0.1 -9.8 1.7C-8.1 6.2 -1.7 9.1 3.8 7.7C7 6.7 9 4.8 9.9 2.1C10.5 0.2 10.5 0.1 10.1 -1.5C9.5 -4.2 7.7 -6.3 4.2 -7.8C2.3 -8.6 -2.5 -9.2 -4.5 -8.6Z", blur: 0.6),
+        TracedLayer(.pink, .face, "M2.998 -7.851C8.173 -5.6 10.927 -0.462 9.149 3.625C7.37 7.712 1.734 9.199 -3.441 6.948C-8.616 4.696 -11.37 -0.442 -9.591 -4.529C-7.813 -8.615 -2.177 -10.103 2.998 -7.851Z", blur: 0.6),
     ])
 
     static let blushRight = MascotPart(id: "blushRight", anchor: CGPoint(x: 145.8, y: 136.5), layers: [
-        TracedLayer(.pink, .face, "M1.4 -8.3C-1.6 -7.6 -6.4 -4.2 -8 -1.7C-10.2 1.8 -9.5 5.7 -6.3 7.6C-5.1 8.2 -4.7 8.3 -2.6 8.4C3.4 8.6 8.9 4.5 9.9 -1C10.3 -3 8.9 -6 6.9 -7.4C6.1 -8.1 5.5 -8.2 3.9 -8.4C2.8 -8.4 1.7 -8.4 1.4 -8.3Z", blur: 0.6, gradient: (-5.7, -3.1, 6.5, 3.4, "#FD6F75", "#FD5D68")),
+        TracedLayer(.pink, .face, "M-2.996 -7.351C2.179 -9.602 7.815 -8.115 9.593 -4.028C11.371 0.059 8.618 5.197 3.443 7.448C-1.732 9.7 -7.369 8.212 -9.147 4.126C-10.925 0.039 -8.171 -5.099 -2.996 -7.351Z", blur: 0.6),
     ])
 
     static let mouthNeutral = MascotPart(id: "mouthNeutral", anchor: CGPoint(x: 101.3, y: 128.4), layers: [
-        TracedLayer(.dark, .face, "M9.4 -6.7C8.8 -6.5 7.9 -5.9 7.4 -5.5C3.1 -2.3 -3 -2.2 -7.1 -5.1C-9 -6.4 -10.5 -6.6 -11.6 -5.5C-12.2 -4.8 -12.3 -4.6 -12.4 -3.1C-12.5 1.6 -8.3 5.9 -2.9 6.8C3.7 7.8 9.1 4.7 11.7 -1.5C12.5 -3.8 12.5 -5.8 11.4 -6.7C10.5 -7.3 10.6 -7.3 9.4 -6.7Z"),
+        TracedLayer(.dark, .face, "M-13.092 -3.565C-12.626 -0.696 -11.136 1.808 -9.01 3.61C-8.395 4.132 -5.412 6.637 -0.655 6.637C4.101 6.637 7.084 4.132 7.7 3.61C9.825 1.808 11.315 -0.696 11.781 -3.565C11.976 -4.767 11.405 -5.963 10.348 -6.567C9.292 -7.17 7.971 -7.055 7.035 -6.277C4.91 -4.511 2.222 -3.659 -0.655 -3.659C-3.533 -3.659 -6.221 -4.511 -8.346 -6.277C-9.282 -7.055 -10.602 -7.17 -11.659 -6.567C-12.716 -5.963 -13.287 -4.767 -13.092 -3.565Z"),
     ])
 
     static let browLeft = MascotPart(id: "browLeft", anchor: CGPoint(x: 66.7, y: 69.8), layers: [
-        TracedLayer(.dark, .face, "M2.6 -5.5C-1.9 -4.5 -5.3 -2.6 -7.7 0.2C-9.5 2.2 -9.7 3.4 -8.8 4.7C-8.2 5.4 -7.8 5.6 -6.9 5.5C-6.6 5.6 -5.8 4.8 -5 4C-1.8 0.8 0.5 -0.3 5 -0.4C8 -0.4 8 -0.4 8.6 -1.2C9.6 -2.5 9.2 -4.3 7.6 -5.2C6.9 -5.5 3.6 -5.8 2.6 -5.5Z"),
+        TracedLayer(.dark, .face, "M6.734 -5.761C1.296 -6.496 -1.968 -4.988 -3.076 -4.46C-5.524 -3.295 -7.334 -1.574 -8.616 -0.168C-9.564 0.871 -9.489 2.481 -8.451 3.428C-7.412 4.375 -5.802 4.3 -4.855 3.262C-3.925 2.242 -2.63 0.965 -0.888 0.136C0.311 -0.435 2.427 -1.207 6.053 -0.717C7.446 -0.529 8.727 -1.505 8.916 -2.898C9.104 -4.291 8.127 -5.573 6.734 -5.761Z"),
     ])
 
     static let browRight = MascotPart(id: "browRight", anchor: CGPoint(x: 136.2, y: 67), layers: [
-        TracedLayer(.dark, .face, "M-5.7 -4.3C-8.5 -3.7 -9.5 -0.7 -7.3 0.5C-6.8 0.7 -6.4 0.7 -5.7 0.6C-2.4 -0.2 1.2 0.9 4.9 3.8C6.8 5.2 7.5 5.5 8.3 4.5C9.5 3.4 9.3 2.4 7.7 0.3C4.7 -3.4 -0.9 -5.3 -5.7 -4.3Z"),
+        TracedLayer(.dark, .face, "M8.436 0.57C7.153 -0.837 5.343 -2.557 2.895 -3.723C1.788 -4.25 -1.477 -5.759 -6.915 -5.024C-8.308 -4.835 -9.285 -3.554 -9.097 -2.161C-8.908 -0.768 -7.626 0.209 -6.234 0.021C-2.608 -0.469 -0.492 0.302 0.707 0.873C2.449 1.702 3.744 2.979 4.674 3.999C5.621 5.038 7.231 5.112 8.27 4.165C9.308 3.218 9.383 1.608 8.436 0.57Z"),
     ])
 
     /// Lid line
     static let lashLeft = MascotPart(id: "lashLeft", anchor: CGPoint(x: 63.1, y: 88.9), layers: [
-        TracedLayer(.dark, .face, "M2.9 -4.1C0.8 -3.7 -1.2 -2.9 -3.3 -1.5C-6.7 1.1 -9.3 3.8 -8.7 4.3C-8.4 4.5 -8.2 4.4 -7.9 3.9C-6.9 2.8 -3.6 0 -2.2 -0.8C1.3 -2.8 4.8 -3.6 7.8 -3.2C9.2 -3 9.3 -3.1 9.3 -3.5C9.3 -3.8 9.1 -4 8.9 -4.2C8 -4.5 4.8 -4.5 2.9 -4.1Z"),
+        TracedLayer(.dark, .face, "M-9.341 4.502C-6.722 0.873 -4.767 -1.844 -1.553 -3.19C1.858 -4.618 5.281 -3.825 8.601 -3.005C8.695 -2.982 8.752 -2.887 8.729 -2.793C8.706 -2.7 8.611 -2.642 8.517 -2.665C7.124 -3.009 3.406 -3.749 -1.012 -1.898C-2.72 -1.183 -6.084 0.586 -9.058 4.707C-9.114 4.785 -9.223 4.803 -9.302 4.746C-9.38 4.69 -9.398 4.58 -9.341 4.502Z"),
     ])
 
-    /// Lid line (split from the traced right pupil)
+    /// Lid line
     static let lashRight = MascotPart(id: "lashRight", anchor: CGPoint(x: 139.1, y: 86.7), layers: [
-        TracedLayer(.dark, .face, "M-6.3 -3.9C-7.9 -3.6 -8.5 -3.2 -8.3 -2.4C-8.3 -2.1 -8.3 -2.1 -6.8 -2.4C-3.3 -3 1.6 -1.5 5.1 1.3C5.8 2 6.6 2.9 6.9 3.3C7 3.6 7 3.7 7.4 3.8C8.4 4 8.4 3.7 7 2C4.8 -0.9 1.5 -3 -1.8 -3.7C-2.7 -4 -5.1 -4 -6.3 -3.9Z"),
+        TracedLayer(.dark, .face, "M8.431 4.163C8.487 4.241 8.47 4.35 8.391 4.407C8.313 4.463 8.203 4.446 8.147 4.367C5.173 0.247 1.809 -1.523 0.102 -2.238C-4.317 -4.088 -8.035 -3.349 -9.428 -3.005C-9.522 -2.982 -9.616 -3.039 -9.64 -3.133C-9.663 -3.227 -9.605 -3.322 -9.512 -3.345C-6.192 -4.164 -2.769 -4.958 0.643 -3.529C3.857 -2.183 5.812 0.533 8.431 4.163Z"),
     ])
 
     static let mouthHappy = MascotPart(id: "mouthHappy", anchor: CGPoint(x: 100.9, y: 130), layers: [
-        TracedLayer(.dark, .face, "M10.9 -12.3C10.7 -12.3 9.5 -11.7 8.3 -11.1C3.4 -8.4 0.6 -8 -6.1 -8.7C-11 -9.1 -11.8 -9 -13.1 -7.9C-14.4 -6.8 -14.7 -5.7 -14.7 -2.7C-14.5 2.6 -10.2 10.8 -7.2 11.7C-6.5 11.9 -6.4 11.5 -6.9 9.8C-7.7 6.5 -4.5 2.6 0.9 1C6.1 -0.7 10.3 2.1 8.8 6.1C8.2 8 8.2 8.3 8.6 8.7C8.8 9.3 8.8 9.3 10 8.1C12.8 4.8 14.9 -1.1 15 -6.2C15.1 -10.4 13.2 -13.3 10.9 -12.3Z"),
-        TracedLayer(.pink, .face, "M0.4 0.2C-5.4 2.1 -8.4 6.1 -7.5 10.2C-7.2 11.7 -7.1 11.8 -6.5 11.8C-6.2 11.8 -5.6 12.1 -5.4 12.2C-3.7 13.6 1.8 13.6 4.5 12.3C5.3 11.9 7.1 10.5 7.9 9.5C8.1 9.4 8.4 9.2 8.6 9.2C9.2 9.2 9.4 9 9.1 8.4C8.9 8.1 9 7.8 9.2 7.3C10.5 4.7 9.8 2.1 7.4 0.5C6.1 -0.3 2.7 -0.5 0.4 0.2Z"),
+        TracedLayer(.dark, .face, "M-1.072 -8.359C5.302 -8.926 8.881 -12.887 11.922 -11.156C15.968 -8.853 12.923 3.488 10.592 6.374C10.247 6.801 5.345 10.872 4.963 11.104C3.591 11.941 2.018 12.309 0.778 12.419C-0.461 12.53 -2.074 12.445 -3.573 11.865C-3.99 11.703 -9.534 8.562 -9.949 8.203C-12.753 5.775 -17.931 -5.834 -14.355 -8.816C-11.668 -11.057 -7.446 -7.791 -1.072 -8.359Z"),
+        TracedLayer(.pink, .face, "M8.05 8.595C6.653 9.767 5.167 10.981 4.963 11.104C3.591 11.941 2.018 12.309 0.778 12.419C-0.461 12.53 -2.074 12.445 -3.573 11.865C-3.795 11.779 -5.473 10.847 -7.055 9.94C-7.823 9.117 -8.307 8.134 -8.403 7.05C-8.706 3.651 -5.085 0.551 -0.316 0.126C4.453 -0.298 8.564 2.113 8.867 5.513C8.963 6.596 8.661 7.65 8.05 8.595Z"),
     ])
 
     static let mouthExcited = MascotPart(id: "mouthExcited", anchor: CGPoint(x: 103.2, y: 133.1), layers: [
-        TracedLayer(.dark, .face, "M10.5 -11.8C10.2 -11.7 9.3 -11.2 8.5 -10.9C4.2 -8.9 2 -8.3 -2.3 -8.5C-4.3 -8.6 -5.6 -8.8 -6.5 -9.1C-7.2 -9.3 -8.4 -9.6 -9.4 -9.6C-10.7 -9.6 -11 -9.5 -11.9 -8.8C-12.5 -8.3 -13.1 -7.5 -13.5 -6.7C-14.2 -5.4 -14.2 -5.1 -14.2 -2.6C-14.1 0.2 -13.6 2.8 -12.9 4.4C-11.2 7.9 -10.3 9.3 -9.2 9.5L-8.6 9.6L-8.5 7.7C-8.3 3.5 -5.1 1.3 0.4 1.6C2.9 1.8 3.1 1.8 4.1 2.5C5.8 4 6.4 6 5.5 7.6C5.1 8.2 5 9.9 5.3 9.9C6.3 9.9 9.1 7.3 10.6 4.9C11.5 3.6 12.8 0.5 13.5 -1.8C14.2 -4.2 14.6 -8.8 14.1 -9.8C13.5 -11.2 11.7 -12.2 10.5 -11.8Z"),
-        TracedLayer(.pink, .face, "M-4.3 1.3C-5.8 1.8 -6.3 2.1 -7.4 3.3C-8.9 4.9 -9.3 6 -9.3 8.2C-9.2 9.6 -9.2 9.6 -8 10.2C-7.4 10.6 -6.8 11 -6.6 11.2C-6.5 11.3 -5.7 11.7 -4.9 11.9C-3.4 12.5 -3.1 12.5 -0.5 12.1C2.3 11.8 3 11.5 4 10.5C4.4 10.3 4.8 10 5.2 9.9C5.7 9.8 5.8 9.7 5.8 9.1C5.8 8.8 6 8.1 6.2 7.8C7 6.4 6.5 4 5.2 2.7C3.7 1.2 3.1 0.9 0.1 0.8C-2.2 0.8 -2.8 0.9 -4.3 1.3Z"),
+        TracedLayer(.dark, .face, "M-1.288 -8.88C8.259 -9.191 8.318 -12.831 11.647 -9.657C14.921 -6.536 12.441 4.783 5.881 9.073C4.968 9.67 0.995 11.294 -0.63 11.347C-2.255 11.4 -6.324 10.038 -7.274 9.501C-14.099 5.647 -17.31 -5.486 -14.246 -8.814C-11.131 -12.198 -10.835 -8.569 -1.288 -8.88Z"),
+        TracedLayer(.pink, .face, "M5.564 9.257C4.272 9.95 0.849 11.299 -0.63 11.347C-2.108 11.395 -5.611 10.272 -6.946 9.665C-7.671 8.795 -8.107 7.755 -8.144 6.628C-8.249 3.402 -5.042 0.679 -0.981 0.547C3.079 0.415 6.456 2.923 6.561 6.15C6.598 7.277 6.231 8.342 5.564 9.257Z"),
     ])
 
     static let mouthCurious = MascotPart(id: "mouthCurious", anchor: CGPoint(x: 110.1, y: 131), layers: [
-        TracedLayer(.dark, .face, "M-0.9 -11.1C-3.5 -10.8 -5.3 -9.9 -6.9 -8.2C-8.8 -6.3 -9.4 -4.4 -9.1 -1.3C-8.8 1.5 -7.5 2.6 -4.7 2.7C-2.1 2.8 -1.2 4 -2.3 6.5C-2.8 7.8 -2.6 8.4 -1.3 9.5C0.7 11.4 3.7 10 4.2 6.8C4.8 2.4 4.6 2.9 6 2.2C7.3 1.5 7.9 0.7 8.5 -1C9.7 -4.7 8.2 -9.2 5.4 -10.4C4.2 -11 0.8 -11.4 -0.9 -11.1Z"),
+        TracedLayer(.dark, .face, "M-1.033 -11.098C-1.054 -11.096 2.977 -11.764 5.711 -9.914C8.825 -7.807 8.895 -1.343 7.201 0.162C6.068 1.169 4.467 0.77 3.423 2.054C1.863 3.972 4.022 6.235 2.813 8.045C2.34 8.752 1.504 9.086 0.698 9.154C-0.108 9.223 -0.989 9.037 -1.574 8.42C-3.073 6.841 -1.33 4.245 -3.193 2.62C-4.44 1.532 -5.95 2.197 -7.237 1.397C-9.162 0.2 -10.19 -6.182 -7.479 -8.786C-5.099 -11.074 -1.012 -11.1 -1.033 -11.098Z"),
     ])
 
     static let mouthThinking = MascotPart(id: "mouthThinking", anchor: CGPoint(x: 110, y: 129.4), layers: [
-        TracedLayer(.dark, .face, "M-0.9 -5.6C-2.9 -5 -5.5 -3.1 -6.5 -1.7C-8.4 1.5 -8.6 3 -7.4 4.6C-6.6 5.6 -6.4 5.6 -5.4 5.6C-4.2 5.6 -3.7 5.2 -3 3.2C-2.5 1.7 -1.4 0.6 0 0.2C1.4 -0.3 2.5 0.2 3.5 1.7C5.2 4.2 5.6 4.5 7 3.9C7.7 3.6 8.5 2.4 8.5 1.4C8.6 -0.6 6.9 -3 4.7 -4.6C3.5 -5.3 3.1 -5.5 1.5 -5.6C0.5 -5.7 -0.6 -5.7 -0.9 -5.6Z"),
+        TracedLayer(.dark, .face, "M-3.692 2.953C-3.033 -0.164 -1.043 -0.805 -0.3 -0.905C0.443 -1.006 2.531 -0.917 3.994 1.913C4.552 2.992 5.862 3.437 6.961 2.923C8.061 2.409 8.559 1.118 8.089 -0.001C6.034 -4.897 1.933 -6.202 -0.964 -5.81C-3.861 -5.418 -7.468 -3.07 -8.148 2.196C-8.303 3.4 -7.481 4.512 -6.284 4.715C-5.087 4.919 -3.943 4.141 -3.692 2.953Z"),
     ])
 
     static let mouthSad = MascotPart(id: "mouthSad", anchor: CGPoint(x: 94.9, y: 131), layers: [
-        TracedLayer(.dark, .face, "M-1.7 -5.9C-3.7 -5.6 -7 -3.2 -8.2 -1.4C-9.9 1.3 -10.1 2 -9.3 3.5C-8.1 5.9 -6.3 5.9 -5.1 3.1C-4.3 1.3 -3.8 0.7 -2.1 -0.1C-0.6 -0.9 1.3 -0.9 2.4 -0.2C2.7 0 3.5 0.8 4.2 1.7C5.8 3.3 6.8 3.5 7.9 2.3C10 0.7 8.1 -3.2 4.4 -5.1C2.9 -5.9 0.1 -6.2 -1.7 -5.9Z"),
+        TracedLayer(.dark, .face, "M-5.923 2.839C-5.272 0.487 -3.412 -1.025 -1.173 -1.376C1.067 -1.726 3.299 -0.854 4.637 1.187C5.191 2.033 6.299 2.317 7.192 1.842C8.085 1.367 8.469 0.289 8.077 -0.643C6.242 -5.01 1.947 -6.812 -1.928 -6.206C-5.804 -5.6 -9.343 -2.572 -9.757 2.146C-9.846 3.154 -9.151 4.063 -8.156 4.243C-7.16 4.422 -6.192 3.814 -5.923 2.839Z"),
     ])
 
     static let mouthWink = MascotPart(id: "mouthWink", anchor: CGPoint(x: 106.7, y: 130.9), layers: [
-        TracedLayer(.dark, .face, "M9.6 -12.1C9.5 -12 8.4 -11.6 7.6 -11.1C6.7 -10.6 5.8 -10.2 5.7 -10.2C5.6 -10.2 5.2 -10 4.7 -9.8C4.2 -9.5 2.6 -9.1 1.3 -9C-1.2 -8.6 -1.3 -8.6 -5.3 -9.2C-11.1 -10.3 -12.2 -10 -13.7 -7.5C-14.4 -6.3 -14.4 -6.2 -14.5 -3.6C-14.5 -0.8 -14.3 0.7 -13.1 3.5C-12.1 5.7 -10.6 8.2 -9.6 8.7C-8.7 9.1 -8.5 8.7 -8.7 7.4C-8.9 5.6 -7 2.2 -5.2 1.3C-3.4 0.5 -2.8 0.2 -1.5 0C1.6 -0.7 3.9 -0.1 5.2 1.6L6.1 2.6L6 4.6C5.9 5.9 5.7 6.6 5.4 6.9C5 7.4 4.9 8.8 5.2 9.1C5.4 9.2 5.5 9.2 5.5 9C5.5 8.9 5.7 8.7 5.9 8.7C6.7 8.7 9.9 5 11.1 2.5C14.5 -4.1 14.9 -10.9 12.1 -11.9C11.3 -12.1 10.3 -12.2 9.6 -12.1Z"),
-        TracedLayer(.pink, .face, "M-1.8 -0.8C-2.9 -0.4 -3.8 -0.1 -5.3 0.6C-5.7 0.8 -6.5 1.5 -7.3 2.3C-8.8 4 -9.4 5.5 -9.3 7.4C-9.4 8.7 -9.4 8.7 -8.1 9.8C-7.4 10.3 -6.3 11 -5.7 11.3C-3.1 12.5 1.8 11.7 3.9 9.6C4.1 9.5 4.5 9.2 4.9 9.3C5.3 9.2 5.5 9 5.6 8.4C5.8 7.7 5.8 7.6 6.3 6.7C6.5 6.3 6.6 5.4 6.6 4.4C6.7 2 6.3 0.9 4.5 -0.1C3.1 -1 0.2 -1.2 -1.8 -0.8Z", gradient: (2.2, 0.1, -4.4, 10.9, "#FA5962", "#FB4857")),
+        TracedLayer(.dark, .face, "M-1.703 -8.869C4.2 -9.061 6.977 -12.174 10.151 -10.717C16.387 -7.856 9.933 5.438 5.61 8.534C4.477 9.345 0.305 10.747 -1.065 10.791C-2.434 10.836 -6.689 9.708 -7.871 8.972C-12.386 6.163 -19.689 -6.685 -13.652 -9.945C-10.579 -11.604 -7.606 -8.677 -1.703 -8.869Z"),
+        TracedLayer(.pink, .face, "M4.687 9.042C3.007 9.825 0.047 10.755 -1.065 10.791C-2.177 10.827 -5.19 10.091 -6.918 9.418C-8.125 8.369 -8.881 6.971 -8.931 5.416C-9.042 1.994 -5.692 -0.892 -1.448 -1.03C2.795 -1.168 6.326 1.495 6.437 4.918C6.487 6.472 5.824 7.916 4.687 9.042Z"),
     ])
 
     static let browLeftHappy = MascotPart(id: "browLeftHappy", anchor: CGPoint(x: 64.7, y: 73.9), layers: [
-        TracedLayer(.dark, .face, "M1.7 -4.8C-2.1 -3.8 -6.4 -0.7 -7.4 1.8C-7.9 2.9 -7.6 4.1 -6.5 4.7C-5.7 5.3 -5.7 5.3 -4.9 4.8C-4.3 4.5 -3.8 4 -3.5 3.7C-2.4 2.4 0.8 0.7 3 0.1C4.2 -0.2 5.5 -0.5 5.8 -0.5C6.7 -0.4 7.9 -1.6 7.9 -2.6C7.9 -3.5 7.3 -4.6 6.7 -4.8C5.8 -5.3 3.4 -5.2 1.7 -4.8Z"),
+        TracedLayer(.dark, .face, "M4.03 -5.768C-0.307 -5.105 -4.879 -2.296 -7.122 -0.078C-8.121 0.91 -8.13 2.521 -7.142 3.521C-6.154 4.52 -4.542 4.529 -3.543 3.541C-1.998 2.014 1.671 -0.258 4.799 -0.736C6.189 -0.949 7.143 -2.247 6.93 -3.637C6.718 -5.026 5.419 -5.981 4.03 -5.768Z"),
     ])
 
     static let browRightHappy = MascotPart(id: "browRightHappy", anchor: CGPoint(x: 128.2, y: 64.6), layers: [
-        TracedLayer(.dark, .face, "M-1.9 -3.2C-6.5 -2.7 -8.7 -0.2 -6.7 2C-5.9 2.9 -5.5 3 -4.4 2.5C-2.1 1.5 2.3 1.6 4.5 2.9C6.5 4.1 8.6 3.3 8.7 1.2C8.8 -1.4 3.2 -3.8 -1.9 -3.2Z"),
+        TracedLayer(.dark, .face, "M-4.349 2.036C-0.193 0.848 3.063 2.046 3.956 2.616C5.141 3.372 6.714 3.024 7.47 1.839C8.226 0.654 7.878 -0.92 6.693 -1.676C6.594 -1.739 4.846 -2.958 1.5 -3.402C0.35 -3.555 -2.413 -3.811 -5.748 -2.858C-7.1 -2.472 -7.882 -1.063 -7.496 0.289C-7.109 1.64 -5.701 2.423 -4.349 2.036Z"),
     ])
 
     static let browLeftExcited = MascotPart(id: "browLeftExcited", anchor: CGPoint(x: 64.4, y: 70.2), layers: [
-        TracedLayer(.dark, .face, "M2.6 -6C-0.6 -5.4 -3.4 -3.7 -5.8 -1.2C-8.4 1.7 -9.1 3.6 -7.9 5.1C-7 6.1 -6.2 5.8 -4.6 3.9C-1.7 0.5 1.2 -1 5.5 -1.3C8.3 -1.5 9 -1.9 9.1 -3.6C9.1 -4.6 9.1 -4.9 8.4 -5.5C7.8 -6 7.6 -6 5.5 -6.1C4.1 -6.2 2.9 -6.1 2.6 -6Z"),
+        TracedLayer(.dark, .face, "M6.063 -6.787C3.34 -7.005 0.25 -5.995 -2.398 -4.49C-4.857 -3.092 -7.287 -1.041 -8.319 1.141C-8.919 2.412 -8.376 3.929 -7.105 4.529C-5.834 5.13 -4.317 4.587 -3.717 3.316C-2.75 1.27 2.416 -1.973 5.657 -1.713C7.058 -1.601 8.285 -2.646 8.397 -4.048C8.509 -5.449 7.464 -6.675 6.063 -6.787Z"),
     ])
 
     static let browRightExcited = MascotPart(id: "browRightExcited", anchor: CGPoint(x: 133.6, y: 62.6), layers: [
-        TracedLayer(.dark, .face, "M-4.6 -4.7C-8.6 -3.9 -10.5 -1.6 -8.8 0.4C-8 1.2 -7.5 1.2 -5.9 0.8C-4.1 0.2 -0.5 0.3 1.2 1C3 1.7 3.7 2.1 5.2 3.4C6.7 4.8 7.7 5 8.6 3.9C10.5 1.7 8 -1.6 2.5 -3.9C1.2 -4.5 -3.4 -4.9 -4.6 -4.7Z"),
+        TracedLayer(.dark, .face, "M-5.891 0.427C-2.135 -0.971 2.268 0.859 3.879 3.002C4.724 4.125 6.32 4.351 7.443 3.506C8.566 2.661 8.792 1.066 7.947 -0.058C7.087 -1.202 5.007 -3.322 1.312 -4.473C-0.978 -5.187 -4.299 -5.597 -7.666 -4.344C-8.983 -3.854 -9.654 -2.389 -9.164 -1.072C-8.674 0.246 -7.209 0.917 -5.891 0.427Z"),
     ])
 
     static let browLeftCurious = MascotPart(id: "browLeftCurious", anchor: CGPoint(x: 70.5, y: 70.9), layers: [
-        TracedLayer(.dark, .face, "M2.7 -6.1C-2.9 -5.1 -9.9 1.6 -8.1 4.4C-7 6.2 -6.2 5.9 -3.5 3.1C-0.3 -0.1 1.2 -0.8 6.9 -1.4C9 -1.6 9.9 -3.7 8.7 -5.3C8.2 -6 8.1 -6 6 -6.2C4.8 -6.2 3.3 -6.2 2.7 -6.1Z"),
+        TracedLayer(.dark, .face, "M5.809 -6.959C1.272 -6.639 -1.638 -4.983 -2.697 -4.357C-4.834 -3.092 -6.655 -1.442 -8.135 0.468C-8.996 1.579 -8.794 3.177 -7.683 4.039C-6.572 4.9 -4.974 4.697 -4.112 3.587C-1.462 0.168 2.154 -1.598 6.168 -1.881C7.57 -1.98 8.626 -3.197 8.527 -4.599C8.428 -6.001 7.212 -7.058 5.809 -6.959Z"),
     ])
 
     static let browRightCurious = MascotPart(id: "browRightCurious", anchor: CGPoint(x: 133.7, y: 60.5), layers: [
-        TracedLayer(.dark, .face, "M-3.3 -3.2C-6.7 -2.6 -9 -0.2 -7.8 1.9C-7.1 2.8 -6.4 2.9 -4.7 2.3C-3.5 1.9 -3 1.8 -0.3 1.9C2.7 2 2.8 2 4.6 3C6.6 4.1 6.7 4.1 7.4 3.7C8.9 2.9 8.8 0.8 7.1 -0.6C4.7 -2.8 0.6 -3.9 -3.3 -3.2Z"),
+        TracedLayer(.dark, .face, "M-4.312 1.985C-1.518 0.332 2.406 1.992 3.64 2.829C4.804 3.618 6.386 3.314 7.175 2.15C7.964 0.987 7.66 -0.596 6.496 -1.384C6.246 -1.554 4.177 -2.972 0.977 -3.572C-1.665 -4.067 -4.471 -3.835 -6.904 -2.395C-8.114 -1.68 -8.514 -0.119 -7.799 1.091C-7.083 2.301 -5.522 2.701 -4.312 1.985Z"),
     ])
 
     static let browLeftThinking = MascotPart(id: "browLeftThinking", anchor: CGPoint(x: 73.4, y: 73.2), layers: [
-        TracedLayer(.dark, .face, "M5.1 -6.8C2.2 -3.4 1.3 -2.5 -0.4 -1.3C-2.1 0.1 -4.6 1.4 -7.2 2.3C-8.3 2.7 -9.9 4.1 -9.9 4.8C-9.9 6.1 -8.3 7.8 -7.3 7.8C-7.1 7.8 -6.1 7.5 -5.1 7.1C-4.1 6.7 -2.9 6.3 -2.6 6.1C0.3 4.9 5.1 1.4 7.2 -1.1C9.3 -3.5 9.9 -5.2 8.9 -6.8C8.5 -7.6 8.3 -7.7 7.2 -7.8C6.2 -7.9 6.2 -7.9 5.1 -6.8Z"),
+        TracedLayer(.dark, .face, "M3.845 -6.561C3.548 -5.89 2.62 -4.006 -0.966 -1.642C-3.113 -0.226 -5.552 0.949 -8.086 2.067C-9.372 2.634 -9.955 4.137 -9.388 5.423C-8.82 6.709 -7.318 7.291 -6.032 6.724C-1.367 4.666 0.788 3.299 1.836 2.607C4.011 1.174 7.034 -1.186 8.5 -4.502C9.069 -5.787 8.488 -7.29 7.202 -7.859C5.917 -8.427 4.414 -7.846 3.845 -6.561Z"),
     ])
 
     static let browRightThinking = MascotPart(id: "browRightThinking", anchor: CGPoint(x: 131.5, y: 63.4), layers: [
-        TracedLayer(.dark, .face, "M-8 -2.9C-9.4 -2 -9.5 -0.4 -8.4 0.9C-7.6 2 -7.7 2 -3.8 2C-0.4 2 3.6 2.5 5.5 3.1C6.9 3.6 7.1 3.6 7.8 3.2C8.7 2.7 9.5 1.4 9.4 0.7C8.9 -1 7.5 -2 4.5 -2.4C3.5 -2.6 2.2 -2.9 1.5 -3C0.9 -3.2 -1.3 -3.4 -3.4 -3.5C-7.1 -3.6 -7.3 -3.5 -8 -2.9Z"),
+        TracedLayer(.dark, .face, "M-7.021 1.21C-4.608 1.559 -3.302 1.567 -0.053 1.79C2.714 1.98 4.013 2.284 4.986 2.652C6.3 3.15 7.769 2.488 8.267 1.173C8.764 -0.142 8.102 -1.611 6.787 -2.108C2.84 -3.602 -1.572 -3.144 -6.291 -3.828C-7.682 -4.03 -8.973 -3.065 -9.175 -1.674C-9.376 -0.283 -8.412 1.008 -7.021 1.21Z"),
     ])
 
     static let browLeftSad = MascotPart(id: "browLeftSad", anchor: CGPoint(x: 64.3, y: 73.1), layers: [
-        TracedLayer(.dark, .face, "M4.8 -6.8C4.6 -6.7 3.4 -5.5 2.3 -4.3C-0.3 -1.4 -2.8 0.2 -6.1 1.5C-7.6 2 -8.8 3.1 -9 3.9C-9.4 5.4 -8.3 7 -6.9 7C-5.3 7.1 -0.8 4.7 2.6 2.2C8 -1.9 9.3 -4.4 7.2 -6.7C6.8 -7 5.5 -7.1 4.8 -6.8Z"),
+        TracedLayer(.dark, .face, "M3.034 -6.042C1.949 -4.922 0.617 -3.573 -1.085 -2.378C-1.576 -2.034 -3.566 -0.624 -7.577 0.926C-8.888 1.432 -9.54 2.906 -9.034 4.217C-8.527 5.528 -7.054 6.18 -5.742 5.674C-1.318 3.964 0.847 2.484 1.839 1.788C3.89 0.349 5.433 -1.203 6.689 -2.498C7.667 -3.507 7.642 -5.118 6.633 -6.097C5.624 -7.075 4.013 -7.051 3.034 -6.042Z"),
     ])
 
     static let browRightSad = MascotPart(id: "browRightSad", anchor: CGPoint(x: 128.3, y: 68.4), layers: [
-        TracedLayer(.dark, .face, "M-7.3 -5.7C-8.7 -4.8 -8.9 -3.1 -8 -1.8C-5.9 1 2.9 6 6.3 6.2C7.5 6.2 7.6 6.1 8.3 5.4C8.6 4.9 8.9 4.2 8.9 3.8C8.9 2.9 7.7 1.6 6.5 1.1C0.8 -0.9 -0.6 -1.6 -4 -4.5C-5.6 -5.9 -6.4 -6.2 -7.3 -5.7Z", gradient: (-0.2, -4.2, -0.3, 4.6, "#141314", "#090708")),
+        TracedLayer(.dark, .face, "M6.419 1.022C2.373 -0.435 0.352 -1.798 -0.147 -2.131C-1.876 -3.286 -3.239 -4.604 -4.35 -5.698C-5.352 -6.684 -6.963 -6.672 -7.949 -5.67C-8.935 -4.669 -8.923 -3.057 -7.921 -2.071C-6.636 -0.806 -5.058 0.71 -2.974 2.102C-1.967 2.775 0.233 4.204 4.695 5.811C6.018 6.287 7.476 5.601 7.952 4.279C8.428 2.956 7.742 1.498 6.419 1.022Z"),
     ])
 
     static let browLeftWink = MascotPart(id: "browLeftWink", anchor: CGPoint(x: 66.9, y: 68.5), layers: [
-        TracedLayer(.dark, .face, "M4.2 -5.2C3.9 -5.1 2.9 -4.9 2.1 -4.9C-1.4 -4.4 -4.7 -2.4 -7.2 0.5C-9.4 3.2 -9.3 5.6 -6.9 5.7C-6.2 5.7 -6 5.5 -4.2 3.6C-1.3 0.6 0.6 -0.2 5.8 -0.5C8 -0.6 8.4 -0.8 8.8 -1.9C9.4 -4.2 7.5 -5.6 4.2 -5.2Z"),
+        TracedLayer(.dark, .face, "M5.63 -5.688C2.449 -5.747 -0.475 -4.776 -2.564 -3.759C-6.267 -1.954 -8.085 0.306 -8.675 1.127C-9.495 2.269 -9.235 3.859 -8.093 4.679C-6.952 5.5 -5.362 5.239 -4.541 4.098C-2.785 1.654 1.62 -0.672 5.536 -0.599C6.941 -0.573 8.102 -1.691 8.128 -3.096C8.154 -4.502 7.036 -5.662 5.63 -5.688Z"),
     ])
 
     static let browRightWink = MascotPart(id: "browRightWink", anchor: CGPoint(x: 136.1, y: 67.7), layers: [
-        TracedLayer(.dark, .face, "M-4.1 -4.1C-7.8 -3.6 -9.7 -1.4 -8.1 0.5C-7.2 1.5 -6.6 1.6 -5 1.1C-4.2 0.8 -2.9 0.7 -1.6 0.8C1.1 0.9 2.1 1.3 5.2 3.4C7 4.7 7.3 4.8 8 4.5C8.8 4.1 9.6 3 9.7 2.3C9.7 1.4 7.8 -0.9 6.3 -2C3.8 -3.7 -0.8 -4.6 -4.1 -4.1Z"),
+        TracedLayer(.dark, .face, "M-5.36 0.931C0.822 -0.548 3.436 2.129 4.316 3.008C5.31 4.002 6.921 4.002 7.915 3.008C8.909 2.014 8.909 0.403 7.915 -0.591C5.485 -3.02 3.011 -3.872 1.473 -4.232C0.577 -4.442 -2.151 -5.07 -6.544 -4.019C-7.911 -3.692 -8.754 -2.319 -8.427 -0.952C-8.1 0.415 -6.727 1.258 -5.36 0.931Z"),
     ])
 
     /// Closed eye (from Happy)
     static let eyeClosedLeft = MascotPart(id: "eyeClosedLeft", anchor: CGPoint(x: 70.5, y: 110.1), layers: [
-        TracedLayer(.dark, .face, "M-1.3 -11.3C-7.9 -10.9 -13.8 -5.5 -16.6 2.6C-17.4 5 -17.6 7.9 -17.2 9.3C-16.6 11.1 -14.8 11.5 -13.5 10.1C-12.9 9.4 -11.7 6.2 -11.7 5.3C-11.7 5.1 -11.2 3.8 -10.6 2.5C-8.4 -2.5 -4.1 -5.4 0.5 -5C5.2 -4.6 8.3 -2.5 11.3 2.4C12.6 4.5 13 4.8 14.5 4.6C17.3 4.2 17 0.5 13.9 -3.7C9.9 -8.9 4.4 -11.8 -1.3 -11.3Z"),
+        TracedLayer(.dark, .face, "M15.866 0.109C13.181 -5.615 9.319 -8.162 8.206 -8.872C3.54 -11.854 -0.665 -11.604 -2.154 -11.444C-4.155 -11.229 -8.263 -10.386 -12.046 -6.26C-12.793 -5.446 -14.31 -3.658 -15.693 -0.735C-15.878 -0.345 -17.214 2.367 -18.095 6.671C-18.385 8.087 -17.472 9.471 -16.055 9.761C-14.639 10.051 -13.255 9.138 -12.965 7.721C-11.819 2.121 -9.809 -0.952 -8.187 -2.722C-5.444 -5.712 -2.617 -6.128 -1.594 -6.238C-0.739 -6.33 2.09 -6.567 5.387 -4.46C6.526 -3.733 9.169 -1.838 11.126 2.333C11.74 3.642 13.299 4.206 14.608 3.592C15.917 2.977 16.48 1.418 15.866 0.109Z"),
     ])
 
     /// Closed eye (from Happy)
     static let eyeClosedRight = MascotPart(id: "eyeClosedRight", anchor: CGPoint(x: 132.4, y: 101.2), layers: [
-        TracedLayer(.dark, .face, "M-1.3 -10.2C-4.5 -9.9 -9.3 -7.2 -11.9 -4.2C-13.1 -2.8 -14.8 -0.2 -15.2 0.7C-15.4 1.1 -15.7 1.6 -15.8 1.8C-16.3 2.6 -17.3 5.3 -17.4 6.3C-17.7 8.3 -16.8 9.9 -15 9.9C-14 9.9 -13.1 9.2 -12.5 7.9C-12.2 7.3 -11.6 5.9 -11.1 4.8C-10 2.5 -7.1 -1.2 -5.3 -2.1C-2.8 -3.7 -1.4 -4.1 1.4 -4C3.6 -4 4.3 -3.8 5.4 -3.3C8.2 -1.9 10.5 0.2 12.4 3.1C13.9 5.7 14.1 5.9 14.8 5.9C15.3 5.9 15.8 5.6 16.4 4.9C17.4 3.9 17.4 3.9 17.3 2.5C17.3 0.7 16.5 -0.8 14.3 -3.4C10.8 -7.7 6.9 -9.8 2.5 -10.2C1.1 -10.3 -0.6 -10.3 -1.3 -10.2Z"),
+        TracedLayer(.dark, .face, "M16.749 0.809C15.354 -2.384 13.088 -5.236 10.199 -7.289C7.968 -8.874 4.624 -10.488 0.525 -10.506C-1.324 -10.515 -5.468 -10.253 -9.826 -6.707C-10.652 -6.035 -12.432 -4.478 -14.257 -1.79C-14.907 -0.832 -16.433 1.549 -17.838 5.213C-18.356 6.563 -17.681 8.077 -16.331 8.595C-14.981 9.113 -13.467 8.438 -12.949 7.088C-10.286 0.143 -7.03 -2.231 -6.521 -2.646C-3.36 -5.217 -0.487 -5.275 0.502 -5.27C1.265 -5.267 4.069 -5.221 7.166 -3.02C9.077 -1.662 10.833 0.349 11.95 2.905C12.529 4.23 14.072 4.835 15.397 4.256C16.722 3.678 17.327 2.134 16.749 0.809Z"),
     ])
 
     /// Unplaced (joints set in step 2-3)
@@ -1246,15 +1267,16 @@ enum MascotParts {
 enum MascotRig {
     static let size = CGSize(width: 196, height: 208)
 
-    /// Measured from the sheet heads; see step3.py.
+    /// Measured from the sheet heads: each open eye's white (centre, uniform scale) and
+    /// pupil (centre) fitted to that head's edges with the constructed eye proportions.
     static let eyePresets: [String: MascotEyePreset] = [
         "neutral": MascotEyePreset(),
         "happy": MascotEyePreset(closedLeft: true, closedRight: true),
-        "excited": MascotEyePreset(scaleLeft: 1.004, scaleRight: 0.952, eyeShiftLeft: CGVector(dx: 0.82, dy: 0.34), eyeShiftRight: CGVector(dx: 0.04, dy: -4.03), pupilShiftLeft: CGVector(dx: -0.63, dy: -0.28), pupilShiftRight: CGVector(dx: -0.84, dy: -0.66)),
-        "curious": MascotEyePreset(scaleLeft: 0.98, scaleRight: 0.936, eyeShiftLeft: CGVector(dx: 7.44, dy: 1.77), eyeShiftRight: CGVector(dx: 3.74, dy: -3.81), pupilShiftLeft: CGVector(dx: -0.13, dy: -0.76), pupilShiftRight: CGVector(dx: 0.35, dy: -1.49)),
-        "thinking": MascotEyePreset(scaleLeft: 1.007, scaleRight: 0.926, eyeShiftLeft: CGVector(dx: 8.94, dy: 1.91), eyeShiftRight: CGVector(dx: 0.4, dy: -5.99), pupilShiftLeft: CGVector(dx: 0.04, dy: -4.48), pupilShiftRight: CGVector(dx: -2.12, dy: -2.6)),
-        "sad": MascotEyePreset(scaleLeft: 0.964, scaleRight: 1.072, eyeShiftLeft: CGVector(dx: 0.24, dy: 2.88), eyeShiftRight: CGVector(dx: -6.41, dy: 3.86), pupilShiftLeft: CGVector(dx: -0.33, dy: -0.64), pupilShiftRight: CGVector(dx: 1.9, dy: -1.58)),
-        "wink": MascotEyePreset(scaleLeft: 0.986, eyeShiftLeft: CGVector(dx: 2.42, dy: -0.9), pupilShiftLeft: CGVector(dx: -0.62, dy: 0.75), closedRight: true),
+        "excited": MascotEyePreset(scaleLeft: 1.035, scaleRight: 0.971, eyeShiftLeft: CGVector(dx: 0.68, dy: 0.19), eyeShiftRight: CGVector(dx: -0.06, dy: -3.87), pupilShiftLeft: CGVector(dx: 1.56, dy: 0.06), pupilShiftRight: CGVector(dx: -0.28, dy: -0.69)),
+        "curious": MascotEyePreset(scaleLeft: 1.034, scaleRight: 0.987, eyeShiftLeft: CGVector(dx: 7.15, dy: 1.73), eyeShiftRight: CGVector(dx: 3.99, dy: -3.85), pupilShiftLeft: CGVector(dx: 1.85, dy: -0.7), pupilShiftRight: CGVector(dx: 1.42, dy: -4.68)),
+        "thinking": MascotEyePreset(scaleLeft: 1.034, scaleRight: 0.941, eyeShiftLeft: CGVector(dx: 8.38, dy: 1.79), eyeShiftRight: CGVector(dx: -0.2, dy: -5.52), pupilShiftLeft: CGVector(dx: 1.68, dy: -5.37), pupilShiftRight: CGVector(dx: 1.48, dy: -6.01)),
+        "sad": MascotEyePreset(scaleLeft: 0.977, scaleRight: 0.963, eyeShiftLeft: CGVector(dx: -0.79, dy: 3.04), eyeShiftRight: CGVector(dx: -5.62, dy: 3.64), pupilShiftLeft: CGVector(dx: 2.12, dy: -0.33), pupilShiftRight: CGVector(dx: 0.7, dy: -4.31)),
+        "wink": MascotEyePreset(scaleLeft: 1.023, eyeShiftLeft: CGVector(dx: 1.84, dy: -0.78), pupilShiftLeft: CGVector(dx: 1.58, dy: 0.53), closedRight: true),
     ]
 
     /// Outer outline of the traced Front figure (fit check only).
