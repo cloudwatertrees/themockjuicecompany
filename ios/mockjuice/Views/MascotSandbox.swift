@@ -599,6 +599,11 @@ struct MascotRigState: Equatable {
     var squash: Double = 0
     var leafSway: Double = 0
     var stemSway: Double = 0
+    /// Both brows, up or down in sheet pixels (positive lowers): they dip behind a blink.
+    var browY: Double = 0
+    /// Both eyes about their centres, lids and pupils included: positive squashes (shorter,
+    /// wider), negative stretches. Gives a blink squash around the shut pose.
+    var eyeSquash: Double = 0
 }
 
 /// Eye settings measured from each expression head on the sheet, relative to
@@ -656,9 +661,9 @@ enum MascotRigRenderer {
         let eyes = e.eyes
         let look = CGVector(dx: CGFloat(s.lookX) * maxLook, dy: CGFloat(s.lookY) * maxLook)
         let left = EyeRig(eye: MascotParts.eyeLeft, scale: eyes.scaleLeft, shift: eyes.eyeShiftLeft,
-                          pupil: eyes.pupilShiftLeft + look, closed: eyes.closedLeft)
+                          pupil: eyes.pupilShiftLeft + look, closed: eyes.closedLeft, squash: CGFloat(s.eyeSquash))
         let right = EyeRig(eye: MascotParts.eyeRight, scale: eyes.scaleRight, shift: eyes.eyeShiftRight,
-                           pupil: eyes.pupilShiftRight + look, closed: eyes.closedRight)
+                           pupil: eyes.pupilShiftRight + look, closed: eyes.closedRight, squash: CGFloat(s.eyeSquash))
         let limbs: [String: CGAffineTransform] = [
             "armLeft": CGAffineTransform(rotationAngle: s.armLeft * .pi / 180),
             "armRight": CGAffineTransform(rotationAngle: -s.armRight * .pi / 180),
@@ -666,6 +671,8 @@ enum MascotRigRenderer {
             "legRight": CGAffineTransform(rotationAngle: -s.legRight * .pi / 180),
             "leaf": CGAffineTransform(rotationAngle: s.leafSway * .pi / 180),
             "stem": CGAffineTransform(rotationAngle: s.stemSway * .pi / 180),
+            "browLeft": CGAffineTransform(translationX: 0, y: s.browY),
+            "browRight": CGAffineTransform(translationX: 0, y: s.browY),
         ]
 
         for part in MascotParts.stack {
@@ -724,13 +731,14 @@ enum MascotRigRenderer {
         let shift: CGVector
         let pupil: CGVector
         let closed: Bool
+        var squash: CGFloat = 0
 
         func transform(for p: MascotPart, pupil movesPupil: Bool = false) -> CGAffineTransform {
             let dx = eye.anchor.x - p.anchor.x
             let dy = eye.anchor.y - p.anchor.y
             let extra = movesPupil ? pupil : .zero
             return CGAffineTransform(translationX: dx + shift.dx + extra.dx, y: dy + shift.dy + extra.dy)
-                .scaledBy(x: scale, y: scale)
+                .scaledBy(x: scale * (1 + squash * 0.5), y: scale * (1 - squash))
                 .translatedBy(x: -dx, y: -dy)
         }
 
@@ -810,6 +818,8 @@ struct MascotRigPlayground: View {
             control("Look ←→", $s.lookX, -1...1)
             control("Look ↑↓", $s.lookY, -1...1)
             control("Blink", $s.blink, 0...1)
+            control("Brows ↑↓", $s.browY, -4...4)
+            control("Eye squash", $s.eyeSquash, -0.1...0.15)
 
             MascotSectionHeader(title: "Limbs")
             control("Left arm", $s.armLeft, -40...100)
