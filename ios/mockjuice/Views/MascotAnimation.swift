@@ -11,16 +11,18 @@ import SwiftUI
 
 // MARK: - Clips
 
-/// What the mascot can be asked to do. Idle always runs underneath: Happy loops until Idle is
-/// cued again; Hop and Celebrate are one-shots that hand back to idle on their own.
+/// What the mascot can be asked to do. Idle always runs underneath: Happy and Wave hold until Idle
+/// is cued again (a later one replaces an earlier one); Hop and Celebrate are one-shots that hand
+/// back to idle on their own.
 enum MascotAnimation: String, CaseIterable, Identifiable {
-    case idle, happy, hop, celebrate
+    case idle, happy, wave, hop, celebrate
 
     var id: String { rawValue }
     var title: String {
         switch self {
         case .idle: "Idle"
         case .happy: "Happy"
+        case .wave: "Wave"
         case .hop: "Correct hop"
         case .celebrate: "Milestone"
         }
@@ -755,6 +757,104 @@ struct MascotHopClip: MascotClip {
     }
 }
 
+// MARK: - Wave
+
+/// Onboarding wave. A blink carries the eyes onto the viewer and opens on the Excited face, wide
+/// and level with them. The body dips under the greeting (the arm swung back), flings the right arm
+/// up past the wave and rocks it five times, each rock smaller and later than the last, while the
+/// body leans against the swing and bobs on each beat; the arm trails through its follow-through
+/// spring, which is all the wrist there is. Then it lowers, a soft blink swaps to the Happy face,
+/// and the pose holds, alive: a slow sway, a breath, and a small "hi again" rock now and then. When
+/// Idle is cued the arm settles and a blink swaps back to neutral as it hands back to idle. Reduce
+/// Motion keeps the same eyes and face over a slow, low rock and a still hold.
+struct MascotWaveClip: MascotClip {
+    let calm: Bool
+    let seed: UInt64
+
+    /// Local time the wave hands over to the held pose.
+    static let hold = 2.5
+
+    var loops: Bool { true }
+    var interruptible: Double { 0 }
+
+    /// Where the hand-back starts: when Idle is cued, but not before the wave has finished.
+    func exit(_ off: Double) -> Double { max(off, Self.hold + 0.1) }
+    /// Where the face goes back to neutral, under the exit blink.
+    func swapBack(_ off: Double) -> Double { exit(off) + 0.27 }
+    func end(off: Double?) -> Double { off.map { exit($0) + 0.7 } ?? .infinity }
+
+    func blinks(off: Double?) -> [MascotBlink] {
+        var b = [MascotBlink(start: 0, close: 0.06, hold: 0.03, open: 0.1),
+                 MascotBlink(start: 2.0, close: 0.06, hold: 0.05, open: 0.14)]
+        if let off { b.append(MascotBlink(start: swapBack(off) - 0.1, close: 0.07, hold: 0.06, open: 0.15)) }
+        return b
+    }
+
+    // The wave: anticipation dip with the arm back, the fling, five decaying rocks, the lower.
+    // Peaks stay under 93: the spring adds a few degrees, and past about 100 the arm slides behind the body.
+    static let arm = MascotCurve([(0, 0), (0.12, -12), (0.34, 92), (0.46, 76), (0.56, 91), (0.73, 58), (0.9, 91), (1.07, 60),
+                                  (1.24, 89), (1.41, 64), (1.58, 85), (1.75, 68), (1.92, 78), (2.25, 22), (2.5, 12)])
+    static let otherArm = MascotCurve([(0, 0), (0.12, -4), (0.34, 8), (0.9, 4), (1.9, 2), (2.5, 0)])
+    static let tilt = MascotCurve([(0, 0), (0.12, 2.5), (0.34, -2.6), (0.56, -2.0), (0.73, -2.8), (0.9, -2.0), (1.07, -2.8),
+                                   (1.24, -2.0), (1.41, -2.6), (1.58, -1.8), (1.9, -1.2), (2.4, 0.6), (2.5, 0)])
+    static let squash = MascotCurve([(0, 0), (0.12, 0.07), (0.3, -0.04), (0.45, 0.01), (0.64, 0.012), (0.81, -0.004), (0.98, 0.012),
+                                     (1.15, -0.004), (1.32, 0.012), (1.49, -0.004), (1.8, 0), (2.2, 0.008), (2.5, 0)])
+    static let brow = MascotCurve([(0, 0), (0.1, -2.0), (2.0, -1.6), (2.4, 0)])
+    static let wide = MascotCurve([(0.07, 0), (0.14, -0.05), (1.9, -0.04), (2.3, 0)])
+    // Reduce Motion: slower, lower rocks.
+    static let calmArm = MascotCurve([(0, 0), (0.45, 62), (0.8, 72), (1.15, 60), (1.5, 72), (1.85, 60), (2.1, 68), (2.5, 12)])
+    static let calmTilt = MascotCurve([(0, 0), (0.5, -0.8), (1.4, -0.6), (2.5, 0)])
+    static let calmSquash = MascotCurve([(0, 0), (0.35, 0.015), (1.0, 0.004), (2.5, 0)])
+    // The held pose's small "hi again": two rocks, once every 2.8 s.
+    static let hiAgain = MascotLoop(2.8, [(0, 0), (0.12, -3), (0.3, 12), (0.45, 2), (0.6, 10), (0.78, 0)])
+
+    func body(_ τ: Double) -> MascotBody {
+        var b = MascotBody()
+        let k = calm ? 0.4 : 1.0
+        if τ < Self.hold {
+            if calm {
+                b.armRight = Self.calmArm(τ)
+                b.tilt = Self.calmTilt(τ)
+                b.squash = Self.calmSquash(τ)
+            } else {
+                b.armRight = Self.arm(τ)
+                b.armLeft = Self.otherArm(τ)
+                b.tilt = Self.tilt(τ)
+                b.squash = Self.squash(τ)
+            }
+        } else {
+            let u = τ - Self.hold, settle = MascotMotion.ease(u / 0.5)
+            b.armRight = 12 + k * Self.hiAgain(u + 1.2) * MascotMotion.ease(u / 0.3)
+            b.armLeft = k * 1.2 * MascotRandom.noise(u / 1.9, MascotRandom.hash(seed, 31))
+            b.tilt = k * 1.1 * MascotRandom.noise(u / 2.2, MascotRandom.hash(seed, 32)) * settle
+            b.squash = -0.012 * k * (1 - cos(2 * .pi * u / 3.2)) / 2
+        }
+        return b
+    }
+
+    func pose(at τ: Double, off: Double?) -> MascotClipPose {
+        var p = MascotClipPose()
+        let out = off.map { exit($0) }, back = off.map { swapBack($0) }
+        p.body = body(τ)
+        // The held pose settles (the arm lowers) over half a second from the hand-back.
+        if let out { p.body = p.body * (1 - MascotMotion.ease((τ - out) / 0.5)) }
+        let release = 1 - MascotMotion.ease((τ - (out ?? .infinity) - 0.35) / 0.3)
+        p.hold = MascotMotion.ease(τ / 0.15) * release
+        // The eyes dart onto the viewer under the first blink and let go under the last.
+        p.gaze = MascotIdleScript.home + SIMD2(0, -0.05)
+        p.gazeHold = MascotMotion.dart(τ - 0.035) * (back.map { 1 - MascotMotion.dart(τ - $0) } ?? 1)
+        p.brow = Self.brow(τ) * (calm ? 0.7 : 1)
+        p.browHold = MascotMotion.ease(τ / 0.1) * release
+        p.eyes = Self.wide(τ) * (calm ? 0.6 : 1)
+        if τ >= 0.075, τ < 2.08 {
+            p.face = .excited
+        } else if τ >= 2.08, back.map({ τ < $0 }) ?? true {
+            p.face = .happy
+        }
+        return p
+    }
+}
+
 // MARK: - Celebrate
 
 /// Milestone celebration: back in idle 3.8 s after its cue (3.4 s calm). A blink carries the eyes up
@@ -1110,29 +1210,39 @@ final class MascotPerformance {
         script = MascotIdleScript(seed: seed, calm: calm)
     }
 
-    /// Turns the cues into placed clips: Happy runs from its cue until Idle is cued; a one-shot
-    /// starts when cued, or once the one before it is far enough along to take over from.
+    /// Turns the cues into placed clips: Happy and Wave run from their cue until Idle is cued (or
+    /// the other is); a one-shot starts when cued, or once the one before it is far enough along
+    /// to take over from.
     private func place() {
-        var placed: [Placed] = [], happyOn: Double?, last: Placed?
+        var placed: [Placed] = [], mode: (animation: MascotAnimation, start: Double)?, last: Placed?
         func add(_ clip: any MascotClip, at start: Double, off: Double?) -> Placed {
             let p = Placed(clip: clip, start: start, end: start + clip.end(off: off), off: off, blinks: clip.blinks(off: off))
             placed.append(p)
             return p
         }
+        func hold(_ animation: MascotAnimation) -> any MascotClip {
+            animation == .wave ? MascotWaveClip(calm: calm, seed: seed) : MascotHappyClip(calm: calm, seed: seed)
+        }
+        func endMode(at time: Double) {
+            if let m = mode { _ = add(hold(m.animation), at: m.start, off: time - m.start) }
+            mode = nil
+        }
         for cue in cues {
             switch cue.animation {
             case .idle:
-                if let on = happyOn { _ = add(MascotHappyClip(calm: calm, seed: seed), at: on, off: cue.time - on) }
-                happyOn = nil
-            case .happy:
-                happyOn = happyOn ?? cue.time
+                endMode(at: cue.time)
+            case .happy, .wave:
+                if mode?.animation != cue.animation {
+                    endMode(at: cue.time)
+                    mode = (cue.animation, cue.time)
+                }
             case .hop, .celebrate:
                 guard let clip = Self.oneShot(cue.animation, calm: calm, seed: seed) else { continue }
                 let start = max(cue.time, last.map { $0.start + $0.clip.interruptible } ?? cue.time)
                 last = add(clip, at: start, off: nil)
             }
         }
-        if let on = happyOn { _ = add(MascotHappyClip(calm: calm, seed: seed), at: on, off: nil) }
+        if let m = mode { _ = add(hold(m.animation), at: m.start, off: nil) }
         // Loops lie under one-shots; within each, a later clip lies over an earlier one. Once a clip
         // above has taken over it brings its own blinks, so one underneath starting then is dropped.
         let layered = placed.sorted { ($0.clip.loops ? 0 : 1, $0.start) < ($1.clip.loops ? 0 : 1, $1.start) }
@@ -1367,6 +1477,7 @@ struct MascotAnimationPlayground: View {
         switch animation {
         case .idle: 60
         case .happy: 8.5
+        case .wave: 7.5
         case .hop: 2.5
         case .celebrate: 5.5
         }
@@ -1380,9 +1491,9 @@ struct MascotAnimationPlayground: View {
         guard animation != .idle else { return d }
         for k in 0..<Int(1800 / length) {
             let t = Double(k) * length
-            if animation == .happy {
-                d.play(.happy, at: t + 0.5)
-                d.play(.idle, at: t + 6.3)
+            if animation == .happy || animation == .wave {
+                d.play(animation, at: t + 0.5)
+                d.play(.idle, at: t + (animation == .happy ? 6.3 : 5.0))
             } else {
                 d.play(animation, at: t + 0.5)
             }
