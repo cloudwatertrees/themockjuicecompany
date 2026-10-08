@@ -347,10 +347,12 @@ enum MascotLid {
         ctx.fill(cover.intersection(shape), with: .color(MascotInk.red.color))
         ctx.fill(lower.intersection(shape), with: .color(MascotInk.red.color))
 
-        // The line stops at the eye white plus the pupils' 0.75 px margin, so it never overhangs.
-        let margin = white.union(white.strokedPath(StrokeStyle(lineWidth: 1.5)))
-        ctx.stroke(edge(at: upperY).lineIntersection(margin), with: .color(MascotInk.dark.color),
-                   style: StrokeStyle(lineWidth: openWeight + (shutWeight - openWeight) * c, lineCap: .butt))
+        // Round-capped line, cut half its weight inside the (elliptical) eye white, so the caps
+        // end on the eye's edge and never overhang.
+        let weight = openWeight + (shutWeight - openWeight) * c
+        let inner = Path(ellipseIn: b.insetBy(dx: weight / 2, dy: weight / 2))
+        ctx.stroke(edge(at: upperY).lineIntersection(inner), with: .color(MascotInk.dark.color),
+                   style: StrokeStyle(lineWidth: weight, lineCap: .round))
     }
 }
 
@@ -370,8 +372,10 @@ enum MascotRenderer {
                 c.clip(to: white.union(white.strokedPath(StrokeStyle(lineWidth: 1.5)))
                     .applying(CGAffineTransform(translationX: eye.anchor.x, y: eye.anchor.y)))
             }
+            let t = pose[part.id] ?? part.follows.flatMap({ pose[$0] })
+            MascotRenderer.clipShade(part, pose: t ?? .identity, in: &c)
             c.translateBy(x: part.anchor.x, y: part.anchor.y)
-            if let t = pose[part.id] ?? part.follows.flatMap({ pose[$0] }) { c.concatenate(t) }
+            if let t { c.concatenate(t) }
             part.draw(in: &c)
             if part.id == "lashRight" {
                 for eye in [MascotParts.eyeLeft, MascotParts.eyeRight] {
@@ -381,6 +385,15 @@ enum MascotRenderer {
                 }
             }
         }
+    }
+
+    /// Joint shading (a part that `follows` a limb) only shows on that limb, outside the
+    /// body, so it stays a soft crease at the body's edge however the limb is posed.
+    static func clipShade(_ part: MascotPart, pose: CGAffineTransform, in ctx: inout GraphicsContext) {
+        guard let id = part.follows, let limb = MascotParts.stack.first(where: { $0.id == id }) else { return }
+        let body = MascotParts.body
+        ctx.clip(to: limb.silhouette.applying(pose.concatenating(CGAffineTransform(translationX: limb.anchor.x, y: limb.anchor.y))))
+        ctx.clip(to: body.silhouette.applying(CGAffineTransform(translationX: body.anchor.x, y: body.anchor.y)), options: .inverse)
     }
 }
 
@@ -686,7 +699,9 @@ enum MascotRigRenderer {
             default:
                 let p = e.variant(part.id) ?? part
                 let pose = limbs[part.id] ?? part.follows.flatMap { limbs[$0] } ?? .identity
-                put(p, pose, in: body)
+                var c = body
+                MascotRenderer.clipShade(p, pose: pose, in: &c)
+                put(p, pose, in: c)
             }
         }
     }
@@ -1078,24 +1093,24 @@ enum MascotParts {
         TracedLayer(.red, .body, "M38.5 -72.2C36.2 -71.9 32.6 -71 30 -70.2C28.3 -69.7 26.9 -69.2 26.8 -69.1C26.7 -69.1 26.3 -69 26 -69C25.8 -69 23.8 -68.6 21.8 -68C17.3 -66.9 14.9 -66.4 12.1 -66C11 -65.8 9.5 -65.6 8.7 -65.4C6.9 -64.8 6.3 -64.8 4 -65.6C2.1 -66.3 -1.1 -67.2 -4 -68.1C-8.8 -69.2 -14.6 -69.5 -18.8 -68.8C-21.5 -68.3 -22.1 -68.1 -25.4 -66.3C-26.1 -65.9 -27.1 -65.3 -27.7 -65.1C-30.8 -63.5 -33.1 -62.2 -34.8 -60.9C-35.6 -60.4 -36.6 -59.6 -37.1 -59.2C-37.6 -58.9 -38.3 -58.3 -38.5 -58.1C-38.7 -57.8 -39.4 -57.3 -39.9 -56.8C-42.7 -54.5 -47 -49.2 -49.8 -45C-52.1 -41.5 -54.2 -37.5 -55.5 -34.2C-55.8 -33.4 -56.2 -32.6 -56.3 -32.4C-56.4 -32.2 -56.5 -31.7 -56.6 -31.2C-56.8 -30.9 -57 -30.3 -57.1 -30C-57.4 -29.2 -57.8 -27.8 -58.8 -24.6C-60.5 -19.1 -61.6 -10.6 -61.6 -3.9C-61.5 -2.4 -61.5 -0.7 -61.4 -0.1C-61.4 0.5 -61.3 1.8 -61.2 2.6C-61.1 4.7 -61.1 4.6 -60.4 8.8C-60.1 10.8 -59.6 13.1 -59.5 13.8C-59.2 14.5 -58.8 16.2 -58.5 17.5C-58 19.1 -57.5 20.6 -56.7 22.8C-52.9 32.1 -49.2 38.1 -42.5 45.4C-39.2 49 -33.7 53.1 -29.1 55.5C-21.7 59.4 -12.1 62.3 -3.2 63.3C1 63.8 9.9 63.9 15.4 63.8C21.4 63.6 29.5 62.5 33.2 61.6C33.5 61.5 34.5 61.3 35.4 61.2C36.2 61 37 60.8 37.2 60.7C37.4 60.6 38.4 60.3 39.4 59.9C40.5 59.6 41.6 59.1 42 59.1C42.3 58.9 42.7 58.8 42.8 58.8C42.9 58.8 43.3 58.6 43.6 58.5C44.6 58 45.9 57.4 46.8 57.1C47.6 56.8 54.3 53.3 54.8 52.8C55 52.8 55.2 52.5 55.3 52.5C55.4 52.6 60.2 49.1 60.7 48.6C60.9 48.5 61.4 48 61.9 47.6C62.4 47.2 62.9 46.6 63.2 46.4C64.9 45 69.8 39.9 71.2 38.2C72.8 36.2 73.4 35.5 75.4 32.7C77.4 29.8 80.5 24.2 81.5 21.5C81.7 21 82.1 20.2 82.3 19.8C83.2 17.9 84.6 13.6 85.6 9.6C86.9 4.6 87.4 2.2 87.9 -2.8C88.1 -5.1 88.5 -14.3 88.4 -16.3C88.3 -17.5 87.8 -23.1 87.6 -24.1C87.6 -24.7 87.4 -25.9 87.3 -27.1C86.9 -29.5 86.9 -29.7 86 -32.9C85.7 -34.2 85.3 -35.5 85.3 -35.9C85.2 -36.2 85 -36.8 84.9 -37.1C84.9 -37.5 84.6 -38.3 84.4 -38.9C84.2 -39.5 83.9 -40.4 83.8 -40.8C83.6 -41.2 83.3 -41.9 83.2 -42.4C82.5 -44.4 79.4 -50.3 77.6 -53.2C74 -58.6 68.8 -64 65 -66.3C63.5 -67.2 60.6 -68.6 59.2 -69.3C58.1 -69.7 53.1 -71.3 51.7 -71.7C50.2 -72 40 -72.4 38.5 -72.2Z"),
     ])
 
-    /// Joint shading drawn over the body; moves with legLeft
+    /// Soft joint shading, shown on the limb just below the body edge; moves with legLeft
     static let legLeftShade = MascotPart(id: "legLeftShade", anchor: CGPoint(x: 75.6, y: 160.3), follows: "legLeft", layers: [
-        TracedLayer(.redShade, .other, "M-10.8 4.7C-10.8 5.1 -11 5.8 -11.2 6.1C-11.7 7.1 -12.8 10.6 -12.8 11.3C-12.8 12.5 -12.5 12.5 -11.9 11.2C-11.5 10.4 -11.1 9.9 -10.8 9.9C-10.6 9.9 -10.4 10 -10.4 10.1C-10.4 10.4 -7.6 11.7 -7.1 11.7C-6.9 11.7 -5.8 12.2 -4.6 12.8C-2 14.1 -0.7 14.6 0.9 14.9C1.5 14.9 2.2 15.1 2.3 15.2C2.5 15.4 3.4 15.5 4.4 15.7C6.8 16 7.1 16.1 7.3 16.6C7.5 17.1 8.3 17 8.9 16.5C9.5 15.9 9.9 16 9.9 16.9C9.9 17.2 10 17.5 10.2 17.5C10.7 17.5 11.2 16.3 12.3 12.2C12.4 11.6 12.7 10.8 12.9 10.5C13.2 9.9 13.2 9.9 12.4 10C11.8 10.1 11.2 10.1 10.6 9.9C10.2 9.7 9 9.4 7.9 9.4C6.9 9.3 4.4 8.8 2.4 8.4C0.3 8 -1.6 7.7 -2 7.7C-2.6 7.7 -5.1 6.8 -7 5.9C-7.7 5.5 -8.6 5.2 -9 5.2C-9.4 5.2 -9.9 4.9 -10.2 4.5L-10.8 3.9L-10.8 4.7Z"),
+        TracedLayer(.redShade, .other, "M0.4 2.7C6.475 2.7 11.4 4.939 11.4 7.7C11.4 10.461 6.475 12.7 0.4 12.7C-5.675 12.7 -10.6 10.461 -10.6 7.7C-10.6 4.939 -5.675 2.7 0.4 2.7Z", blur: 2.2),
     ])
 
-    /// Joint shading drawn over the body; moves with legRight
+    /// Soft joint shading, shown on the limb just below the body edge; moves with legRight
     static let legRightShade = MascotPart(id: "legRightShade", anchor: CGPoint(x: 118.9, y: 159.1), follows: "legRight", layers: [
-        TracedLayer(.redShade, .other, "M11.1 5.6C10.9 6 10.6 6.1 10 6.1C9.5 6.1 8.1 6.5 6.9 7C4.9 7.8 2.8 8.4 -1.3 9.2C-4.1 9.8 -8.8 10.7 -9.5 10.7C-9.9 10.7 -10.4 10.8 -10.8 11.1C-11.4 11.5 -11.5 11.5 -12.3 11.1C-12.8 10.8 -13.2 10.7 -13.3 10.7C-13.3 10.7 -13 11.5 -12.7 12.3C-12.2 13.1 -11.9 14 -11.9 14.3C-11.9 14.6 -11.7 15.5 -11.4 16.1C-11.1 16.8 -10.9 17.6 -10.9 17.9C-10.9 18.1 -10.5 18.8 -10 19.4L-9.1 20.5L-9.3 19.6C-9.5 18.3 -9.1 18.3 -8 19.6L-7.2 20.5L-6.3 19.8C-5.8 19.5 -5.1 19.1 -4.7 19C-3.3 18.7 -3.2 18.6 -3 17.9C-2.9 17.3 -2.7 17.1 -2 17C-1.5 16.9 -1.1 16.7 -1.1 16.6C-1.1 16.5 -0.9 16.4 -0.7 16.4C-0.4 16.4 -0.1 16.3 0 16.2C0.1 16.1 0.5 15.9 0.9 15.8C1.3 15.7 1.9 15.5 2.3 15.2C2.7 15.1 3.1 14.9 3.2 14.9C3.4 14.9 4.6 14.2 6.1 13.4C10.5 10.8 12.1 10.3 12.7 11.1C13.7 12.8 13.5 10.5 12.3 7.3C11.5 5.2 11.4 5.1 11.1 5.6Z"),
+        TracedLayer(.redShade, .other, "M0.1 1.9C6.175 1.9 11.1 4.139 11.1 6.9C11.1 9.661 6.175 11.9 0.1 11.9C-5.975 11.9 -10.9 9.661 -10.9 6.9C-10.9 4.139 -5.975 1.9 0.1 1.9Z", blur: 2.2),
     ])
 
-    /// Joint shading drawn over the body; moves with armLeft
+    /// Soft joint shading, shown on the limb just below the body edge; moves with armLeft
     static let armLeftShade = MascotPart(id: "armLeftShade", anchor: CGPoint(x: 36.2, y: 126.4), follows: "armLeft", layers: [
-        TracedLayer(.redShade, .other, "M-5.9 10.4C-7.4 12.8 -8 14.4 -8 16.4C-8 18.4 -7.7 18.9 -6.8 18.6C-6 18.3 -5.9 18.6 -6.3 20.1C-6.5 20.8 -6.5 21.4 -6.4 21.4C-5.5 21.4 -3.7 17.9 -2.8 14.4C-2.4 13.1 -2.3 12.9 -1.6 12.6C-0.6 12.3 -0.5 12.1 -1.2 11.5C-2 10.7 -3.1 10.6 -3.4 11.2C-3.8 11.7 -4.1 11.5 -4.3 10.6C-4.6 9.5 -5.3 9.5 -5.9 10.4Z"),
+        TracedLayer(.redShade, .other, "M-5.2 4.6C-2.162 4.6 0.3 8.629 0.3 13.6C0.3 18.571 -2.162 22.6 -5.2 22.6C-8.238 22.6 -10.7 18.571 -10.7 13.6C-10.7 8.629 -8.238 4.6 -5.2 4.6Z", blur: 2.2),
     ])
 
-    /// Joint shading drawn over the body; moves with armRight
+    /// Soft joint shading, shown on the limb just below the body edge; moves with armRight
     static let armRightShade = MascotPart(id: "armRightShade", anchor: CGPoint(x: 157.6, y: 123.4), follows: "armRight", layers: [
-        TracedLayer(.redShade, .other, "M7.2 7.3C5.9 8.8 4.6 11 4.6 11.9C4.6 12.1 4.4 12.5 4 12.8C3.1 13.3 2.2 14.2 2.2 14.4C2.2 14.5 2.6 14.6 3.1 14.6C4.1 14.6 4.1 14.6 4.3 15.7C4.7 18 9 24.8 10.4 25.4C11.3 25.8 11.3 25.5 10.1 23.7C9 21.9 9 21.9 8.1 20.7C7.6 20.2 7 18.4 7.3 18.4C7.3 18.4 7.7 18.6 8.3 18.8C9.2 19.3 9.2 19.3 9.9 18.8C11.2 17.9 11.3 14.2 10.2 12.2C9.8 11.4 9.2 10 8.8 8.9C8.2 6.9 7.8 6.5 7.2 7.3Z"),
+        TracedLayer(.redShade, .other, "M7.9 4.6C10.938 4.6 13.4 8.629 13.4 13.6C13.4 18.571 10.938 22.6 7.9 22.6C4.862 22.6 2.4 18.571 2.4 13.6C2.4 8.629 4.862 4.6 7.9 4.6Z", blur: 2.2),
     ])
 
     /// Sclera
