@@ -64,6 +64,9 @@ which the mascot references), mockjuiceApp.swift, ContentView.swift (now just Ho
 - ios/mockjuice/Models/CategoryInfo.swift (referenced by nothing)
 - ios/mockjuice/Config.swift (platform-generated stub with empty EXPO_PUBLIC_* keys, unused)
 
+## Docs
+- DESIGN.md (design system notes: palette, journey node colours; outdated, removed). Restore: git show archive/pre-rebuild-2026-10-13:DESIGN.md
+
 ## Older forest art (also in the tag)
 The 14-layer Phase B version of the forest art is in git history before commit f399eee (commit 16f964a) and in
 tools/forest-v2/backup/ForestPathIllustration.phaseB.swift.

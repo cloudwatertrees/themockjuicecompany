@@ -2,7 +2,6 @@ import SwiftUI
 
 /// The single source of truth for color across the app.
 ///
-/// See `DESIGN.md` at the repo root for the canonical role of each token.
 /// Never hardcode a color in a view file — add or reuse a token here instead.
 enum MJTheme {
     // MARK: - Brand Palette
