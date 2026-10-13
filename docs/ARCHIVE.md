@@ -1,6 +1,6 @@
 # ARCHIVE: what was removed in the clean-slate rebuild
 
-Tag `archive/pre-rebuild-2026-10-13` (commit f399eee, pushed to origin) holds the whole app exactly as it was before
+Tag `archive/pre-rebuild-2026-10-13` (commit 72a49c0, pushed to origin) holds the whole app exactly as it was before
 the purge: old onboarding, quiz flow, progress, old home scene and everything else below. Nothing is lost.
 
 Restore one file:        git checkout archive/pre-rebuild-2026-10-13 -- <path>
@@ -68,7 +68,7 @@ which the mascot references), mockjuiceApp.swift, ContentView.swift (now just Ho
 - DESIGN.md (design system notes: palette, journey node colours; outdated, removed). Restore: git show archive/pre-rebuild-2026-10-13:DESIGN.md
 
 ## Older forest art (also in the tag)
-The 14-layer Phase B version of the forest art is in git history before commit f399eee (commit 16f964a) and in
+The 14-layer Phase B version of the forest art is in git history before commit 72a49c0 (commit 1a3c35a) and in
 tools/forest-v2/backup/ForestPathIllustration.phaseB.swift.
 
 ## Not touched in this purge
