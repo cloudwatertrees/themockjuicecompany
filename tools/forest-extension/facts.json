@@ -1,0 +1,111 @@
+{
+ "live_art_file": "ios/mockjuice/Views/Components/ForestPathIllustration.swift",
+ "sha256": "873089dcfaca5c72d102f83c69c84e430a835025dffe173f39a91ede2cc021b7",
+ "home_scene_sha256": "256b4815a3973bccf70108f65125579a9c8588c2d564982f134f912c46baac99",
+ "canvas": {
+  "width": 937.0,
+  "height": 1678.0
+ },
+ "layers_back_to_front": [
+  "meadow",
+  "hedge",
+  "pathEdges",
+  "path",
+  "pond",
+  "backTrees",
+  "pines",
+  "bridge",
+  "bushes",
+  "doorBush",
+  "door",
+  "stones",
+  "rocks",
+  "fox",
+  "log",
+  "flowers",
+  "frontTrees"
+ ],
+ "shapes_per_layer": {
+  "meadow": 397,
+  "hedge": 89,
+  "pathEdges": 83,
+  "path": 100,
+  "pond": 191,
+  "backTrees": 85,
+  "pines": 122,
+  "bridge": 183,
+  "bushes": 264,
+  "doorBush": 106,
+  "door": 0,
+  "stones": 0,
+  "rocks": 98,
+  "fox": 0,
+  "log": 40,
+  "flowers": 172,
+  "frontTrees": 203
+ },
+ "shape_total": 2133,
+ "fill_kinds": "flat RRGGBB or bilinear mesh *W H; no linear gradients in the live data",
+ "mesh_density": {
+  "flat_count": 293,
+  "mesh2x2_count": 868,
+  "mesh_dense_count": 972,
+  "flat_area_pct_5_25_50_75_95": [
+   1.32,
+   3.29,
+   6.1,
+   10.15,
+   25.84
+  ],
+  "mesh2x2_area_pct": [
+   15.25,
+   30.57,
+   54.67,
+   85.07,
+   133.56
+  ],
+  "dense_area_pct": [
+   98.19,
+   203.29,
+   407.5,
+   981.25,
+   5215.58
+  ],
+  "dense_cell_x_pct": [
+   3.76,
+   3.93,
+   4.04,
+   4.28,
+   9.12
+  ],
+  "dense_cell_y_pct": [
+   3.73,
+   3.93,
+   4.04,
+   4.31,
+   9.24
+  ],
+  "rule": "flat if area < ~10 u2; 2x2 mesh if area < ~100 u2; otherwise cells of ~4 u (about 80%) or ~8 u for smooth soft-gradient shapes (about 20%): nx = round(bw/c)+1, ny = round(bh/c)+1 (bw, bh = tight bounds grown by 1 u). Verified against the percentiles above.",
+  "dense_nx_exact_match_frac_4u_rule": 0.802
+ },
+ "scale_rule": {
+  "source": "HomeSceneView: GeometryReader(.ignoresSafeArea) -> ForestPathIllustration().frame(geo.size).clipped() -> Canvas -> ForestPathArt.image(of:size:scale: displayScale) -> fillTransform(for: size)",
+  "s": "max(viewW / 937, viewH / 1678)",
+  "tx": "(viewW - 937 * s) / 2",
+  "ty": "(viewH - 1678 * s) / 2",
+  "raster": "pixels = design * s * displayScale + (tx, ty) * displayScale; CPU coverage via CGContext, composited in ShapeRaster"
+ },
+ "layers_crossing_bottom_edge": [
+  "frontTrees",
+  "meadow",
+  "path",
+  "pathEdges",
+  "pines",
+  "rocks"
+ ],
+ "sha256_original_file": "275282563bc90e5cf4439b706be591437f3fcc130d6b788ced241d26b0f04aa3",
+ "data_sha256": "b84e269f456e23f49951b97f4dfa888c04632cc238f4be6f9278c7118ca17316",
+ "code_changes": [
+  "2026-10-17: `private` dropped on ShapeDataReader and ShapeRaster (approved) so ForestPathExtension.swift reuses the parser and rasteriser; data section unchanged (data_sha256)."
+ ]
+}

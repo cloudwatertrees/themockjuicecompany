@@ -1,0 +1,6 @@
+[   3.6s] 119311 fine regions
+[  34.6s] 40000 regions after merging
+[  46.3s] boundaries re-placed
+[ 203.1s] 39985 shapes traced
+[ 205.7s] wrote ../out/A_40k.swift: 9.51 MB, 293458 segments, shapes per layer {'meadow': 15098, 'pathEdges': 2905, 'path': 1313, 'water': 516, 'rocks': 1747, 'wood': 715, 'foliage': 15217, 'conifers': 1426, 'accents': 9, 'flowers': 1039}
+crisp preview (Skia, no soft pass): SSIM(luma) 0.9811  SSIM(RGB) 0.9757  MAE R/G/B 1.61/1.45/1.33

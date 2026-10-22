@@ -1,0 +1,137 @@
+[
+ {
+  "device": "393x852",
+  "scale": 1,
+  "seg_px": [
+   393,
+   852
+  ],
+  "art_scale_pt_per_u": 0.507747,
+  "join_diff": 1.58,
+  "neighbour_median": 1.44,
+  "neighbour_p95": 3.07,
+  "worst_bin_excess": -5.99,
+  "worst_bin_x_pt": 147.0,
+  "step": false
+ },
+ {
+  "device": "393x852",
+  "scale": 2,
+  "seg_px": [
+   786,
+   1704
+  ],
+  "art_scale_pt_per_u": 0.507747,
+  "join_diff": 1.23,
+  "neighbour_median": 0.85,
+  "neighbour_p95": 1.69,
+  "worst_bin_excess": -4.13,
+  "worst_bin_x_pt": 123.0,
+  "step": false
+ },
+ {
+  "device": "393x852",
+  "scale": 3,
+  "seg_px": [
+   1179,
+   2556
+  ],
+  "art_scale_pt_per_u": 0.507747,
+  "join_diff": 1.21,
+  "neighbour_median": 0.75,
+  "neighbour_p95": 1.27,
+  "worst_bin_excess": -3.91,
+  "worst_bin_x_pt": 123.0,
+  "step": false
+ },
+ {
+  "device": "402x874",
+  "scale": 1,
+  "seg_px": [
+   402,
+   874
+  ],
+  "art_scale_pt_per_u": 0.520858,
+  "join_diff": 1.59,
+  "neighbour_median": 1.38,
+  "neighbour_p95": 3.01,
+  "worst_bin_excess": -5.97,
+  "worst_bin_x_pt": 151.0,
+  "step": false
+ },
+ {
+  "device": "402x874",
+  "scale": 2,
+  "seg_px": [
+   804,
+   1748
+  ],
+  "art_scale_pt_per_u": 0.520858,
+  "join_diff": 1.22,
+  "neighbour_median": 0.8,
+  "neighbour_p95": 1.71,
+  "worst_bin_excess": -4.13,
+  "worst_bin_x_pt": 126.0,
+  "step": false
+ },
+ {
+  "device": "402x874",
+  "scale": 3,
+  "seg_px": [
+   1206,
+   2622
+  ],
+  "art_scale_pt_per_u": 0.520858,
+  "join_diff": 1.2,
+  "neighbour_median": 0.75,
+  "neighbour_p95": 1.25,
+  "worst_bin_excess": -3.96,
+  "worst_bin_x_pt": 126.0,
+  "step": false
+ },
+ {
+  "device": "820x1180",
+  "scale": 1,
+  "seg_px": [
+   820,
+   1469
+  ],
+  "art_scale_pt_per_u": 0.875447,
+  "join_diff": 1.65,
+  "neighbour_median": 1.26,
+  "neighbour_p95": 2.22,
+  "worst_bin_excess": -2.81,
+  "worst_bin_x_pt": 314.0,
+  "step": false
+ },
+ {
+  "device": "820x1180",
+  "scale": 2,
+  "seg_px": [
+   1640,
+   2937
+  ],
+  "art_scale_pt_per_u": 0.875149,
+  "join_diff": 1.6,
+  "neighbour_median": 0.84,
+  "neighbour_p95": 1.36,
+  "worst_bin_excess": -2.29,
+  "worst_bin_x_pt": 314.0,
+  "step": false
+ },
+ {
+  "device": "820x1180",
+  "scale": 3,
+  "seg_px": [
+   2460,
+   4406
+  ],
+  "art_scale_pt_per_u": 0.875248,
+  "join_diff": 1.61,
+  "neighbour_median": 0.59,
+  "neighbour_p95": 0.97,
+  "worst_bin_excess": 0.53,
+  "worst_bin_x_pt": 48.0,
+  "step": true
+ }
+]

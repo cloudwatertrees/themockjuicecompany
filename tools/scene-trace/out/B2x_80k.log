@@ -1,0 +1,6 @@
+[   7.9s] 341692 fine regions
+[  72.3s] 80000 regions after merging
+[  80.3s] boundaries re-placed
+[ 375.7s] 79007 shapes traced
+crisp preview (Skia, no soft pass, input resolution): SSIM(luma) 0.9863  SSIM(RGB) 0.9830  MAE R/G/B 1.16/1.05/0.97
+[ 388.7s] wrote ../out/B2x_80k.swift: 23.25 MB, 774245 segments, shapes per layer {'meadow': 30360, 'pathEdges': 2484, 'path': 2563, 'water': 2813, 'rocks': 8528, 'wood': 4360, 'foliage': 21628, 'conifers': 5051, 'accents': 1063, 'flowers': 157}

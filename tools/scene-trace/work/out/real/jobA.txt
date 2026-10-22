@@ -1,0 +1,2 @@
+full 937 1678 1 /Users/laverath/Desktop/themockjuicecompany/tools/scene-trace/work/out/real/A20k_1x.png
+cold 393 852 3 x

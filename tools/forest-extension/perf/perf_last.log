@@ -1,0 +1,16 @@
+perf start footprint 10.8 MB
+perf live parse 102.8 ms (2133 shapes)
+perf ext parse 117.8 ms (2359 shapes)
+perf live raster 402x874@3 56.0 ms 1206x2622
+perf ext raster 402x874@3 42.3 ms 1206x2622
+perf end footprint 63.0 MB (both rasters held)
+perf done
+com.scratch.forestperf: 70182
+perf start footprint 10.8 MB
+perf live parse 12.5 ms (2133 shapes)
+perf ext parse 13.9 ms (2359 shapes)
+perf live raster 402x874@3 42.4 ms 1206x2622
+perf ext raster 402x874@3 38.0 ms 1206x2622
+perf end footprint 64.1 MB (both rasters held)
+perf done
+com.scratch.forestperf: 70189

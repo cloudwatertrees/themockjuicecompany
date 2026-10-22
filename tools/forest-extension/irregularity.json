@@ -1,0 +1,685 @@
+{
+ "mottling": {
+  "meadow": {
+   "all": {
+    "n": 78,
+    "amp_lum_median": 4.1,
+    "amp_lum_p90": 7.75,
+    "corr_len_u_median": 7.9
+   },
+   "dark": {
+    "n": 26,
+    "amp_lum_median": 5.83,
+    "amp_lum_p90": 9.3,
+    "corr_len_u_median": 8.1
+   },
+   "mid": {
+    "n": 26,
+    "amp_lum_median": 4.2,
+    "amp_lum_p90": 6.98,
+    "corr_len_u_median": 8.0
+   },
+   "light": {
+    "n": 26,
+    "amp_lum_median": 2.82,
+    "amp_lum_p90": 5.04,
+    "corr_len_u_median": 4.1
+   }
+  },
+  "hedge": {
+   "all": {
+    "n": 31,
+    "amp_lum_median": 4.51,
+    "amp_lum_p90": 8.85,
+    "corr_len_u_median": 11.2
+   },
+   "dark": {
+    "n": 10,
+    "amp_lum_median": 3.02,
+    "amp_lum_p90": 7.61,
+    "corr_len_u_median": 7.9
+   },
+   "mid": {
+    "n": 11,
+    "amp_lum_median": 4.48,
+    "amp_lum_p90": 6.22,
+    "corr_len_u_median": 11.2
+   },
+   "light": {
+    "n": 10,
+    "amp_lum_median": 5.45,
+    "amp_lum_p90": 9.02,
+    "corr_len_u_median": 12.2
+   }
+  },
+  "pathEdges": {
+   "all": {
+    "n": 8,
+    "amp_lum_median": 2.98,
+    "amp_lum_p90": 3.9,
+    "corr_len_u_median": 6.0
+   },
+   "dark": {
+    "n": 3,
+    "amp_lum_median": 3.55,
+    "amp_lum_p90": 3.67,
+    "corr_len_u_median": 8.0
+   },
+   "mid": {
+    "n": 2,
+    "amp_lum_median": 3.1,
+    "amp_lum_p90": 4.12,
+    "corr_len_u_median": 8.0
+   },
+   "light": {
+    "n": 3,
+    "amp_lum_median": 2.36,
+    "amp_lum_p90": 2.91,
+    "corr_len_u_median": 4.1
+   }
+  },
+  "path": {
+   "all": {
+    "n": 23,
+    "amp_lum_median": 3.66,
+    "amp_lum_p90": 5.73,
+    "corr_len_u_median": 8.0
+   },
+   "dark": {
+    "n": 8,
+    "amp_lum_median": 4.77,
+    "amp_lum_p90": 6.0,
+    "corr_len_u_median": 8.1
+   },
+   "mid": {
+    "n": 7,
+    "amp_lum_median": 3.76,
+    "amp_lum_p90": 4.31,
+    "corr_len_u_median": 8.2
+   },
+   "light": {
+    "n": 8,
+    "amp_lum_median": 1.96,
+    "amp_lum_p90": 3.68,
+    "corr_len_u_median": 7.9
+   }
+  },
+  "pond": {
+   "all": {
+    "n": 25,
+    "amp_lum_median": 5.19,
+    "amp_lum_p90": 9.73,
+    "corr_len_u_median": 8.2
+   },
+   "dark": {
+    "n": 8,
+    "amp_lum_median": 7.45,
+    "amp_lum_p90": 10.1,
+    "corr_len_u_median": 10.3
+   },
+   "mid": {
+    "n": 9,
+    "amp_lum_median": 5.39,
+    "amp_lum_p90": 8.85,
+    "corr_len_u_median": 12.0
+   },
+   "light": {
+    "n": 8,
+    "amp_lum_median": 3.09,
+    "amp_lum_p90": 5.09,
+    "corr_len_u_median": 7.9
+   }
+  },
+  "backTrees": {
+   "all": {
+    "n": 39,
+    "amp_lum_median": 5.66,
+    "amp_lum_p90": 11.18,
+    "corr_len_u_median": 12.2
+   },
+   "dark": {
+    "n": 13,
+    "amp_lum_median": 5.49,
+    "amp_lum_p90": 9.75,
+    "corr_len_u_median": 11.7
+   },
+   "mid": {
+    "n": 13,
+    "amp_lum_median": 5.98,
+    "amp_lum_p90": 11.3,
+    "corr_len_u_median": 15.8
+   },
+   "light": {
+    "n": 13,
+    "amp_lum_median": 5.0,
+    "amp_lum_p90": 11.1,
+    "corr_len_u_median": 12.5
+   }
+  },
+  "pines": {
+   "all": {
+    "n": 28,
+    "amp_lum_median": 5.29,
+    "amp_lum_p90": 9.86,
+    "corr_len_u_median": 8.4
+   },
+   "dark": {
+    "n": 9,
+    "amp_lum_median": 7.14,
+    "amp_lum_p90": 9.45,
+    "corr_len_u_median": 11.6
+   },
+   "mid": {
+    "n": 10,
+    "amp_lum_median": 5.82,
+    "amp_lum_p90": 10.1,
+    "corr_len_u_median": 12.1
+   },
+   "light": {
+    "n": 9,
+    "amp_lum_median": 3.26,
+    "amp_lum_p90": 4.3,
+    "corr_len_u_median": 4.1
+   }
+  },
+  "bridge": {
+   "all": {
+    "n": 36,
+    "amp_lum_median": 4.97,
+    "amp_lum_p90": 8.35,
+    "corr_len_u_median": 8.0
+   },
+   "dark": {
+    "n": 12,
+    "amp_lum_median": 5.95,
+    "amp_lum_p90": 8.8,
+    "corr_len_u_median": 8.1
+   },
+   "mid": {
+    "n": 12,
+    "amp_lum_median": 4.16,
+    "amp_lum_p90": 5.72,
+    "corr_len_u_median": 8.0
+   },
+   "light": {
+    "n": 12,
+    "amp_lum_median": 4.97,
+    "amp_lum_p90": 6.37,
+    "corr_len_u_median": 7.9
+   }
+  },
+  "bushes": {
+   "all": {
+    "n": 42,
+    "amp_lum_median": 5.12,
+    "amp_lum_p90": 7.94,
+    "corr_len_u_median": 8.0
+   },
+   "dark": {
+    "n": 14,
+    "amp_lum_median": 5.5,
+    "amp_lum_p90": 8.01,
+    "corr_len_u_median": 8.1
+   },
+   "mid": {
+    "n": 14,
+    "amp_lum_median": 5.46,
+    "amp_lum_p90": 6.93,
+    "corr_len_u_median": 8.0
+   },
+   "light": {
+    "n": 14,
+    "amp_lum_median": 4.46,
+    "amp_lum_p90": 6.37,
+    "corr_len_u_median": 8.1
+   }
+  },
+  "doorBush": {
+   "all": {
+    "n": 29,
+    "amp_lum_median": 4.81,
+    "amp_lum_p90": 7.34,
+    "corr_len_u_median": 11.6
+   },
+   "dark": {
+    "n": 10,
+    "amp_lum_median": 6.21,
+    "amp_lum_p90": 7.29,
+    "corr_len_u_median": 11.9
+   },
+   "mid": {
+    "n": 9,
+    "amp_lum_median": 4.81,
+    "amp_lum_p90": 8.32,
+    "corr_len_u_median": 11.7
+   },
+   "light": {
+    "n": 10,
+    "amp_lum_median": 4.5,
+    "amp_lum_p90": 5.91,
+    "corr_len_u_median": 8.0
+   }
+  },
+  "rocks": {
+   "all": {
+    "n": 20,
+    "amp_lum_median": 6.25,
+    "amp_lum_p90": 8.89,
+    "corr_len_u_median": 8.0
+   },
+   "dark": {
+    "n": 7,
+    "amp_lum_median": 5.93,
+    "amp_lum_p90": 6.38,
+    "corr_len_u_median": 8.0
+   },
+   "mid": {
+    "n": 6,
+    "amp_lum_median": 7.86,
+    "amp_lum_p90": 11.58,
+    "corr_len_u_median": 8.0
+   },
+   "light": {
+    "n": 7,
+    "amp_lum_median": 6.19,
+    "amp_lum_p90": 7.9,
+    "corr_len_u_median": 11.7
+   }
+  },
+  "log": {
+   "all": {
+    "n": 4,
+    "amp_lum_median": 5.57,
+    "amp_lum_p90": 6.5,
+    "corr_len_u_median": 8.3
+   },
+   "dark": {
+    "n": 1,
+    "amp_lum_median": 4.83,
+    "amp_lum_p90": 4.83,
+    "corr_len_u_median": 7.9
+   },
+   "mid": {
+    "n": 2,
+    "amp_lum_median": 4.65,
+    "amp_lum_p90": 6.2,
+    "corr_len_u_median": 8.3
+   },
+   "light": {
+    "n": 1,
+    "amp_lum_median": 6.31,
+    "amp_lum_p90": 6.31,
+    "corr_len_u_median": 19.6
+   }
+  },
+  "flowers": {
+   "all": {
+    "n": 10,
+    "amp_lum_median": 4.23,
+    "amp_lum_p90": 5.93,
+    "corr_len_u_median": 4.0
+   },
+   "dark": {
+    "n": 3,
+    "amp_lum_median": 5.01,
+    "amp_lum_p90": 5.78,
+    "corr_len_u_median": 4.1
+   },
+   "mid": {
+    "n": 4,
+    "amp_lum_median": 4.42,
+    "amp_lum_p90": 5.54,
+    "corr_len_u_median": 4.0
+   },
+   "light": {
+    "n": 3,
+    "amp_lum_median": 2.8,
+    "amp_lum_p90": 2.86,
+    "corr_len_u_median": 3.9
+   }
+  },
+  "frontTrees": {
+   "all": {
+    "n": 72,
+    "amp_lum_median": 5.49,
+    "amp_lum_p90": 9.67,
+    "corr_len_u_median": 12.2
+   },
+   "dark": {
+    "n": 24,
+    "amp_lum_median": 6.16,
+    "amp_lum_p90": 9.96,
+    "corr_len_u_median": 14.0
+   },
+   "mid": {
+    "n": 24,
+    "amp_lum_median": 5.53,
+    "amp_lum_p90": 9.48,
+    "corr_len_u_median": 12.2
+   },
+   "light": {
+    "n": 24,
+    "amp_lum_median": 4.95,
+    "amp_lum_p90": 8.19,
+    "corr_len_u_median": 12.0
+   }
+  }
+ },
+ "outlines": {
+  "meadow": {
+   "n_outlines": 246,
+   "turn_1u_deg_p50_p90_p99": [
+    5.29,
+    25.98,
+    67.76
+   ],
+   "turn_4u_deg_p50_p90_p99": [
+    18.57,
+    69.23,
+    116.37
+   ],
+   "frac_1u_turns_over_10deg": 0.3097,
+   "segments_per_100u_median": 34.9
+  },
+  "hedge": {
+   "n_outlines": 57,
+   "turn_1u_deg_p50_p90_p99": [
+    5.01,
+    24.46,
+    68.36
+   ],
+   "turn_4u_deg_p50_p90_p99": [
+    18.24,
+    64.03,
+    112.83
+   ],
+   "frac_1u_turns_over_10deg": 0.2668,
+   "segments_per_100u_median": 32.1
+  },
+  "pathEdges": {
+   "n_outlines": 51,
+   "turn_1u_deg_p50_p90_p99": [
+    3.01,
+    14.54,
+    59.62
+   ],
+   "turn_4u_deg_p50_p90_p99": [
+    7.35,
+    44.71,
+    119.95
+   ],
+   "frac_1u_turns_over_10deg": 0.1618,
+   "segments_per_100u_median": 27.5
+  },
+  "path": {
+   "n_outlines": 79,
+   "turn_1u_deg_p50_p90_p99": [
+    2.78,
+    11.08,
+    54.4
+   ],
+   "turn_4u_deg_p50_p90_p99": [
+    7.76,
+    32.39,
+    105.28
+   ],
+   "frac_1u_turns_over_10deg": 0.1148,
+   "segments_per_100u_median": 28.3
+  },
+  "pond": {
+   "n_outlines": 107,
+   "turn_1u_deg_p50_p90_p99": [
+    5.23,
+    28.58,
+    77.45
+   ],
+   "turn_4u_deg_p50_p90_p99": [
+    16.6,
+    71.88,
+    135.02
+   ],
+   "frac_1u_turns_over_10deg": 0.3186,
+   "segments_per_100u_median": 36.0
+  },
+  "backTrees": {
+   "n_outlines": 64,
+   "turn_1u_deg_p50_p90_p99": [
+    3.81,
+    19.96,
+    71.34
+   ],
+   "turn_4u_deg_p50_p90_p99": [
+    12.69,
+    59.81,
+    118.85
+   ],
+   "frac_1u_turns_over_10deg": 0.2168,
+   "segments_per_100u_median": 28.0
+  },
+  "pines": {
+   "n_outlines": 76,
+   "turn_1u_deg_p50_p90_p99": [
+    5.24,
+    25.83,
+    77.58
+   ],
+   "turn_4u_deg_p50_p90_p99": [
+    19.93,
+    69.33,
+    126.55
+   ],
+   "frac_1u_turns_over_10deg": 0.2901,
+   "segments_per_100u_median": 31.0
+  },
+  "bridge": {
+   "n_outlines": 92,
+   "turn_1u_deg_p50_p90_p99": [
+    3.42,
+    22.91,
+    69.66
+   ],
+   "turn_4u_deg_p50_p90_p99": [
+    8.7,
+    59.65,
+    122.04
+   ],
+   "frac_1u_turns_over_10deg": 0.2228,
+   "segments_per_100u_median": 37.1
+  },
+  "bushes": {
+   "n_outlines": 146,
+   "turn_1u_deg_p50_p90_p99": [
+    6.74,
+    32.8,
+    81.31
+   ],
+   "turn_4u_deg_p50_p90_p99": [
+    24.52,
+    77.96,
+    130.24
+   ],
+   "frac_1u_turns_over_10deg": 0.3706,
+   "segments_per_100u_median": 34.4
+  },
+  "doorBush": {
+   "n_outlines": 71,
+   "turn_1u_deg_p50_p90_p99": [
+    6.33,
+    29.31,
+    77.58
+   ],
+   "turn_4u_deg_p50_p90_p99": [
+    22.98,
+    74.0,
+    126.57
+   ],
+   "frac_1u_turns_over_10deg": 0.349,
+   "segments_per_100u_median": 34.3
+  },
+  "rocks": {
+   "n_outlines": 53,
+   "turn_1u_deg_p50_p90_p99": [
+    5.67,
+    27.47,
+    72.47
+   ],
+   "turn_4u_deg_p50_p90_p99": [
+    16.29,
+    67.93,
+    122.97
+   ],
+   "frac_1u_turns_over_10deg": 0.3261,
+   "segments_per_100u_median": 36.1
+  },
+  "log": {
+   "n_outlines": 22,
+   "turn_1u_deg_p50_p90_p99": [
+    5.05,
+    28.97,
+    81.06
+   ],
+   "turn_4u_deg_p50_p90_p99": [
+    15.26,
+    69.63,
+    145.79
+   ],
+   "frac_1u_turns_over_10deg": 0.3169,
+   "segments_per_100u_median": 36.8
+  },
+  "flowers": {
+   "n_outlines": 69,
+   "turn_1u_deg_p50_p90_p99": [
+    9.6,
+    35.79,
+    86.8
+   ],
+   "turn_4u_deg_p50_p90_p99": [
+    33.62,
+    83.8,
+    142.42
+   ],
+   "frac_1u_turns_over_10deg": 0.4844,
+   "segments_per_100u_median": 37.3
+  },
+  "frontTrees": {
+   "n_outlines": 131,
+   "turn_1u_deg_p50_p90_p99": [
+    3.77,
+    22.12,
+    70.65
+   ],
+   "turn_4u_deg_p50_p90_p99": [
+    12.82,
+    63.12,
+    118.17
+   ],
+   "frac_1u_turns_over_10deg": 0.2266,
+   "segments_per_100u_median": 29.1
+  }
+ },
+ "asymmetry": {
+  "backTrees": {
+   "n": 21,
+   "asym_median": 0.507,
+   "asym_p25_p75": [
+    0.427,
+    0.685
+   ]
+  },
+  "pines": {
+   "n": 12,
+   "asym_median": 0.68,
+   "asym_p25_p75": [
+    0.441,
+    0.748
+   ]
+  },
+  "bushes": {
+   "n": 6,
+   "asym_median": 0.378,
+   "asym_p25_p75": [
+    0.367,
+    0.389
+   ]
+  },
+  "rocks": {
+   "n": 11,
+   "asym_median": 0.61,
+   "asym_p25_p75": [
+    0.352,
+    0.752
+   ]
+  },
+  "frontTrees": {
+   "n": 39,
+   "asym_median": 0.577,
+   "asym_p25_p75": [
+    0.431,
+    0.7
+   ]
+  }
+ },
+ "lobes": {
+  "backTrees": {
+   "n": 27,
+   "lobe_len_cv_median": 0.66
+  },
+  "pines": {
+   "n": 22,
+   "lobe_len_cv_median": 0.57
+  },
+  "bushes": {
+   "n": 22,
+   "lobe_len_cv_median": 0.52
+  },
+  "frontTrees": {
+   "n": 55,
+   "lobe_len_cv_median": 0.728
+  }
+ },
+ "region_offsets": {
+  "backTrees": {
+   "n": 2,
+   "interior_edge_dist_mean_median": 4.6,
+   "std_over_mean_median": 0.355
+  },
+  "pines": {
+   "n": 1,
+   "interior_edge_dist_mean_median": 2.5,
+   "std_over_mean_median": 0.752
+  },
+  "frontTrees": {
+   "n": 1,
+   "interior_edge_dist_mean_median": 5.1,
+   "std_over_mean_median": 1.013
+  }
+ },
+ "ground_shadows": {
+  "0-3u": {
+   "below_obj": -38.8,
+   "other": -27.6
+  },
+  "3-6u": {
+   "below_obj": -33.2,
+   "other": -21.5
+  },
+  "6-10u": {
+   "below_obj": -29.7,
+   "other": -18.7
+  },
+  "10-16u": {
+   "below_obj": -26.1,
+   "other": -15.1
+  },
+  "16-25u": {
+   "below_obj": -18.3,
+   "other": -10.5
+  },
+  "25-40u": {
+   "below_obj": -13.0,
+   "other": -5.6
+  },
+  "far_ground_lum": 218.4
+ },
+ "checksum": "275282563bc90e5cf4439b706be591437f3fcc130d6b788ced241d26b0f04aa3"
+}

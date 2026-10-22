@@ -1,0 +1,12 @@
+img_01.png	control	zoom 3x	A x 608..768, y 301..421
+img_02.png	control	zoom 2x	A x 523..823, y 791..991
+img_03.png	join	zoom 2x	join at y=57 of 200 (x 272..572)
+img_04.png	control	zoom 1x	A x 254..674, y 294..554
+img_05.png	join	zoom 1x	join at y=160 of 320 (x 110..670)
+img_06.png	join	zoom 3x	join at y=76 of 150 (x 582..782)
+img_07.png	join	zoom 2x	join at y=130 of 180 (x 148..408)
+img_08.png	join	zoom 3x	join at y=47 of 120 (x 489..649)
+img_09.png	control	zoom 3x	A x 293..493, y 691..841
+img_10.png	join	zoom 1x	join at y=69 of 260 (x 295..715)
+img_11.png	control	zoom 1x	A x 108..668, y 779..1099
+img_12.png	control	zoom 2x	A x 587..847, y 902..1082

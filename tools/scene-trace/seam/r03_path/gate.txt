@@ -1,0 +1,8 @@
+A neighbour rows (bottom 200, x 81..856): mean 2.44 p95 3.12 max 3.94; seam limit 3.1
+B (warped, unedited) neighbour rows 0..499: p95 4.96 = edit-boundary limit
+seam row A[1677] vs B[0]: 1.55 ok
+B top 500 neighbour rows: mean 3.32 p95 4.94 max 7.15 (row 233) [info]
+edit left: boundary mean |dL| 10.14 over 916 pairs FAIL
+edit clean: boundary mean |dL| 0.72 over 2168 pairs ok
+edit pebbles: boundary mean |dL| 1.35 over 364 pairs ok
+NUMERIC FAIL

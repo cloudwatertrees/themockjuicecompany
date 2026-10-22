@@ -1,0 +1,6 @@
+numpy==2.5.3
+opencv-python-headless==5.0.0.93
+pillow==12.3.0
+scikit-image==0.26.0
+scipy==1.18.1
+skia-python==144.0.post2

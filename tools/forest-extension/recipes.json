@@ -1,0 +1,85 @@
+{
+ "checksum": "275282563bc90e5cf4439b706be591437f3fcc130d6b788ced241d26b0f04aa3",
+ "conventions": {
+  "units": "design units; extension y = 0 at the seam",
+  "light": "from above, leaning toward the clearing column x = 470 (fx.trees.light_side)",
+  "mesh_rule": "fx.paint.emit: flat < 10 u2, 2x2 < 100 u2, else 4 u cells (8 u for smooth shapes); 2x2 fitted by least squares",
+  "geometry": "signed-distance unions on a 3 samples/u grid -> contours -> adaptive Catmull-Rom cubic Beziers, written as absolute M + relative c, 1 decimal",
+  "determinism": "every recipe takes a seed; scene.SEED = 20261014"
+ },
+ "recipes": {
+  "bell_tree": {
+   "fn": "fx.trees.bell_tree(cx, top, W, tiers, seed, layer)", "layers": ["frontTrees", "backTrees"],
+   "based_on": ["frontTrees tree at (152, 1218)", "frontTrees group at x 780-937, y 1050-1678", "backTrees top-left group"],
+   "structure": "per tier: body shape (dark side ramp, shade band under the tier above) + lit-side shape (boundary at -0.10 of the local half-width, wavy; 14 u ramp from mid to light)",
+   "params": {"tiers": [2, 4], "top_tier": "H 1.8-2.0 W, dome r 0.42-0.48 W, neck 0.22, flare power 1.2-1.35", "lower_tiers": "H 1.45-1.55 W, dome r 0.5 W, neck 0.05, hem 0.72-0.8 W below the hem above", "hem": "3 lobes (W <= 45) or 4; ellipse lobes rx = 0.56 pitch, ry = 0.85 rx; outer lobes lifted 0.18 ry and tilted 0.25 rad", "asymmetry": "flank widths +-6 % growing toward the hem"},
+   "palette": ["3A6A5A", "467F69", "5B9972", "7BB77F", "9CCB89", "B4D592"],
+   "status": "prototype; refine: tier-to-tier overlap, stronger hem shade, more painted variation in the lit region"
+  },
+  "fern_pine": {
+   "fn": "fx.plants.fern_pine(cx, top, W, tiers, seed, layer, halo)", "layers": ["pines"],
+   "based_on": ["pines tree at (408, 430)", "pines tree at (295, 1390)"],
+   "structure": "pale ground halo; per tier one rosette shape: 7-9 blunt oval leaflets on an elliptical reach profile + 3-4 front hem lobes + core ellipse; dark core shade under the tier above",
+   "params": {"H": "2.5 W", "tiers_3": "(centre y / H, vertical reach / W, lateral reach / W): (0.42, 0.95, 0.62), (0.66, 0.72, 1.0), (0.84, 0.5, 1.0)", "leaflet": "width 0.42 x length (max 0.27 W), blunt tip circle 0.40 width"},
+   "palette": ["3C735E", "498663", "70AD72", "94C47F", "B2D592"],
+   "status": "prototype; refine: lighter front lobes over a darker core, more distinct leaflets"
+  },
+  "leaf_clump": {
+   "fn": "fx.plants.leaf_clump(cx, cy, R, seed, layer, n, front)", "layers": ["bushes"],
+   "based_on": ["bush at (320, 985) beside the bridge", "ferns around the big rock (620, 930)", "fern mounds at the bottom-left seam"],
+   "structure": "dark inner mass; n palmate leaves fanned over the upper half (tone by depth +-0.08), `front` yellow-green leaves hanging forward; each leaf: rosette of 5-6 leaflets",
+   "params": {"n": 7, "front": 3, "leaf_size": "0.85-1.0 R (scaled 0.75 + 0.3 * upness)"},
+   "palette": ["426F55", "598A60", "70A773", "82C289", "A6D49A"], "front_palette": ["6F9A55", "92BC68", "B2CF7E"],
+   "status": "prototype; refine: rounder broad lobes, stronger leaf-to-leaf value steps, soft ground shadow"
+  },
+  "fern": {
+   "fn": "planned fx.plants.fern", "layers": ["bushes"],
+   "structure": "arching fronds = leaflet rows along a curved axis, rounded leaflets, darker toward the base; clump of 5-9 fronds",
+   "status": "Stage 2"
+  },
+  "flower": {
+   "fn": "fx.plants.flower(cx, cy, R, kind, seed, layer)", "layers": ["flowers"],
+   "based_on": ["white flower at (322, 965)", "lilac flowers near the bridge and the bottom-left rock"],
+   "structure": "one petal shape (5 round petals + disc, paler toward tips and top), one centre (top-to-bottom yellow ramp)",
+   "params": {"R": [9, 18], "kinds": ["white", "lilac", "yellow"]},
+   "status": "prototype; close to the live flowers"
+  },
+  "rock": {
+   "fn": "fx.stones.rock(cx, by, w, h, seed, layer, moss)", "layers": ["rocks"],
+   "based_on": ["big rock at (620, 930)", "rock at the bottom-left seam (235, 1630)", "pond stones"],
+   "structure": "base (mid) + dark left face + darker narrow right face + light top face, slightly angular facet lines",
+   "palette": ["6E6E86", "8B89A0", "9E9BB0", "B5B1C0", "C9C5D0"],
+   "status": "prototype; refine: taller dome, diagonal top-face boundary, irregular facet lines (current jag is too regular)"
+  },
+  "path": {
+   "fn": "scene.build_path + fx.pathgen.PathModel/PathEdges", "layers": ["path", "pathEdges"],
+   "based_on": ["live path, seam.json edges"],
+   "structure": "cream surface mesh; pale rim on band-less edges; brown band on the outer side of each bend with smoothstep tapers; 1.2 u pale line; cobbles; pebbles (Poisson disc 78 u)",
+   "params": {"half_width": "140 +- 5 (normal offset)", "band_width": "72-78", "seam_blend": "160 u"},
+   "palette": {"cream": ["E9D3AC", "F3DFBE", "F6E4C3", "F7E8CC", "F9EBD2"], "band": ["94684B", "A97A5C", "B08062", "BC8D6D"], "cobble": ["B88A69", "C49874", "CFA582"], "rim": "EFE3B4", "line": "D3B190"},
+   "status": "working; seam continuous in position, slope and colour (crops/stage1/seam_path_*.png)"
+  },
+  "pebble": {
+   "fn": "fx.stones.pebble(cx, cy, rx, ry, ang, seed, layer, palette)", "layers": ["path", "pathEdges"],
+   "structure": "body (darker lower rim) + paler inset", "palette": ["D9B98F", "EBD3AE", "F3DFBF"], "status": "working"
+  },
+  "ground": {
+   "fn": "scene.build_ground + fx.ground.Buffer", "layers": ["meadow"],
+   "structure": "one full-canvas mesh sampled from a paint buffer: open tone + large/small mottling, pale bank strip beside the band, pale halo strip on band-less path edges, soft object shadows and halos (Stage 2), blended into the live last row",
+   "palette": ["7F8E57", "97A262", "ADB46B", "C5C777", "D2D087", "E1DB9D", "EFE8BC"],
+   "status": "working base; shadows/halos per object in Stage 2"
+  },
+  "stream": {"fn": "planned fx.water.stream", "layers": ["pond", "rocks", "meadow"], "based_on": ["live pond (0-340, 320-520)"], "status": "Stage 2"},
+  "old_tree": {"fn": "planned fx.oldtree.old_tree", "layers": ["backTrees", "frontTrees"], "status": "Stage 2"},
+  "seam_caps": {"fn": "fx.seam.cap_outline/cap_shape", "layers": ["path", "frontTrees", "bushes"], "status": "pebble cap working; tree lobes and fern mounds in Stage 2.1"}
+ },
+ "layer_mapping": {
+  "meadow": "ground base, halos, shadows, stream bank strip",
+  "pathEdges": "edge bands, pale line, cobbles", "path": "cream surface, rims, pebbles",
+  "pond": "stream water, rims, ripples, lily pads, reeds",
+  "backTrees": "edge bell trees behind, old tree trunk and roots", "pines": "fern-pines",
+  "bushes": "ferns, leaf clumps", "rocks": "boulders, smooth stream stones", "flowers": "flowers",
+  "frontTrees": "front bell trees, old tree canopy, seam caps of the live front trees",
+  "hedge": "unused", "bridge": "unused", "doorBush": "unused", "door": "empty", "stones": "empty", "fox": "empty", "log": "unused"
+ }
+}

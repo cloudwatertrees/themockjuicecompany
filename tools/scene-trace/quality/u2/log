@@ -1,0 +1,6 @@
+[   4.3s] 130673 fine regions
+[  30.3s] 28600 regions after merging
+[  33.4s] boundaries re-placed
+[ 298.2s] 28251 shapes traced
+crisp preview (Skia, no soft pass, input resolution): SSIM(luma) 0.9846  SSIM(RGB) 0.9807  MAE R/G/B 1.31/1.19/1.11
+[ 303.5s] wrote /Users/laverath/Desktop/themockjuicecompany/tools/scene-trace/quality/u2/art.swift: 8.22 MB, 273460 segments, shapes per layer {'meadow': 11068, 'pathEdges': 708, 'path': 816, 'water': 1046, 'rocks': 3441, 'wood': 1587, 'foliage': 7398, 'conifers': 1676, 'accents': 465, 'flowers': 46}

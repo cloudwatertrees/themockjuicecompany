@@ -1,0 +1,2 @@
+m4         SSIM 0.9778  edgeF1 0.956 (rec 0.936 pre 0.976)  detail 0.879  gradSSIM 0.9466  shapes 14176
+           path: boundary err 0.35 px, wobble 1.746 (source 1.766) | caps: boundary err 0.19 px, wobble 0.596 (source 0.592)

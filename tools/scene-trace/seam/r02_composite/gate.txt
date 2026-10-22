@@ -1,0 +1,15 @@
+A neighbour rows (bottom 200, x 81..856): mean 2.44 p95 3.12 max 3.94; seam limit 3.1
+B (warped, unedited) neighbour rows 0..499: p95 4.96 = edit-boundary limit
+seam row A[1677] vs B[0]: 1.35 ok
+B top 500 neighbour rows: mean 3.31 p95 5.00 max 7.16 (row 233) [info]
+edit L_behind: boundary mean |dL| 18.60 over 856 pairs FAIL
+edit L_fringe: boundary mean |dL| 11.25 over 302 pairs FAIL
+edit L_shade: boundary mean |dL| 14.43 over 1245 pairs FAIL
+edit L_boulder: boundary mean |dL| 4.70 over 64 pairs ok
+edit L_seam: boundary mean |dL| 6.12 over 309 pairs FAIL
+edit R_bank: boundary mean |dL| 4.56 over 810 pairs ok
+edit R_pine: boundary mean |dL| 5.05 over 224 pairs FAIL
+edit R_stone: boundary mean |dL| 0.93 over 162 pairs ok
+edit R_left: boundary mean |dL| 1.01 over 65 pairs ok
+edit R_seam: boundary mean |dL| 1.75 over 463 pairs ok
+NUMERIC FAIL

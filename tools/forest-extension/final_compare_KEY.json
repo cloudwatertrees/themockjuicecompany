@@ -1,0 +1,138 @@
+[
+ {
+  "pair": 1,
+  "type": "bush with flowers",
+  "new_is": "right",
+  "live_box": [
+   225,
+   880,
+   435,
+   1050
+  ],
+  "new_box": [
+   535,
+   60,
+   745,
+   230
+  ]
+ },
+ {
+  "pair": 2,
+  "type": "boulder + ferns",
+  "new_is": "right",
+  "live_box": [
+   520,
+   845,
+   760,
+   1030
+  ],
+  "new_box": [
+   0,
+   70,
+   240,
+   255
+  ]
+ },
+ {
+  "pair": 3,
+  "type": "fern-pine",
+  "new_is": "right",
+  "live_box": [
+   310,
+   400,
+   520,
+   670
+  ],
+  "new_box": [
+   530,
+   250,
+   740,
+   520
+  ]
+ },
+ {
+  "pair": 4,
+  "type": "bell-tree group",
+  "new_is": "right",
+  "live_box": [
+   690,
+   1080,
+   937,
+   1420
+  ],
+  "new_box": [
+   690,
+   90,
+   937,
+   430
+  ]
+ },
+ {
+  "pair": 5,
+  "type": "water",
+  "new_is": "left",
+  "live_box": [
+   0,
+   300,
+   300,
+   520
+  ],
+  "new_box": [
+   20,
+   1260,
+   320,
+   1480
+  ]
+ },
+ {
+  "pair": 6,
+  "type": "path + edge band",
+  "new_is": "left",
+  "live_box": [
+   330,
+   1180,
+   760,
+   1400
+  ],
+  "new_box": [
+   380,
+   900,
+   810,
+   1120
+  ]
+ },
+ {
+  "pair": 7,
+  "type": "trees, left edge",
+  "new_is": "right",
+  "live_box": [
+   0,
+   1150,
+   260,
+   1480
+  ],
+  "new_box": [
+   0,
+   690,
+   260,
+   1020
+  ]
+ },
+ {
+  "pair": 8,
+  "type": "ground, flowers, tufts",
+  "new_is": "left",
+  "live_box": [
+   380,
+   1020,
+   620,
+   1160
+  ],
+  "new_box": [
+   280,
+   1500,
+   520,
+   1640
+  ]
+ }
+]
